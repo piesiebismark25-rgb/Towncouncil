@@ -1,0 +1,29 @@
+[
+  {
+    "_id": "job0xdp4aepr8l4ssix6",
+    "createdAt": "2026-05-20T17:58:13.904Z",
+    "title": "Town Hall Meeting on City Budget",
+    "content": "Join the annual town hall meeting to discuss budget allocations for the 2026 fiscal year. Your input matters!",
+    "type": "event",
+    "date": "2026-05-22T17:58:13.902Z",
+    "targetAudience": "all"
+  },
+  {
+    "_id": "hkpuwukkdvkdxo81hlay2q",
+    "createdAt": "2026-05-20T17:58:13.912Z",
+    "title": "Road Maintenance Schedule",
+    "content": "Main Street road resurfacing will start next Monday. Expect temporary delays and alternate route detours.",
+    "type": "general",
+    "date": "2026-05-20T17:58:13.902Z",
+    "targetAudience": "all"
+  },
+  {
+    "_id": "8ni4ylavkctd90bnowv5li",
+    "createdAt": "2026-05-20T17:58:13.919Z",
+    "title": "Urgent: Water Pipe Repair",
+    "content": "Emergency water maintenance on Maple Avenue. Services will be offline from 2 PM to 5 PM today.",
+    "type": "urgent",
+    "date": "2026-05-20T17:58:13.902Z",
+    "targetAudience": "all"
+  }
+]
