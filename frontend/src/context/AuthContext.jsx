@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://towncouncil-t570.onrender.com/api';
 
 // ==========================================
 // Frontend Persistence Mock Fallback Layer
@@ -587,7 +587,7 @@ window.fetch = async function (url, options) {
   if (url instanceof Request) {
     urlString = url.url;
   }
-  if (typeof urlString === 'string' && urlString.includes('http://localhost:5000/api')) {
+  if (typeof urlString === 'string' && (urlString.includes('https://towncouncil-t570.onrender.com/api') || urlString.includes('http://localhost:5000/api'))) {
     try {
       const response = await originalFetch(url, options);
       return response;
