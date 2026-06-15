@@ -10,15 +10,15 @@ const LandingPage = ({ onGetStarted }) => {
           Town Council Digital Portal
         </span>
       </div>
-      
+
       <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '3rem', fontWeight: 800, lineHeight: 1.1, maxWidth: '850px', margin: '0.5rem 0 1.5rem', letterSpacing: '-0.03em' }}>
         Connecting Citizens through <span style={{ background: 'var(--accent-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Efficient Governance</span>
       </h1>
-      
+
       <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', maxWidth: '650px', marginBottom: '2.5rem' }}>
         Apply for building permits, pay property taxes, book community events, and submit service feedback requests directly to your local town council.
       </p>
-      
+
       <button onClick={onGetStarted} className="btn btn-primary" style={{ padding: '0.9rem 2.25rem', borderRadius: 'var(--radius-md)', fontSize: '1.05rem', boxShadow: '0 8px 24px rgba(99, 102, 241, 0.2)' }}>
         Get Started
         <ArrowRight size={18} />
