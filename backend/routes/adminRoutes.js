@@ -4,8 +4,15 @@ import {
   getAnalytics,
   getAllUsers,
   updateUserRole,
+  createUser,
+  editUser,
+  deleteUser,
+  getUserDetails,
   getAllRequests,
   updateServiceRequest,
+  createRequestOnBehalf,
+  editRequest,
+  deleteRequest,
   getAllPermits,
   updatePermitStatus,
   createAnnouncement,
@@ -28,9 +35,16 @@ router.use(adminOnly);
 router.get('/analytics', getAnalytics);
 
 router.get('/users', getAllUsers);
+router.post('/users', createUser);
+router.put('/users/:id', editUser);
+router.delete('/users/:id', deleteUser);
+router.get('/users/:id/details', getUserDetails);
 router.post('/users/:id/role', updateUserRole);
 
 router.get('/requests', getAllRequests);
+router.post('/requests', createRequestOnBehalf);
+router.put('/requests/:id', editRequest);
+router.delete('/requests/:id', deleteRequest);
 router.post('/requests/:id/update', updateServiceRequest);
 
 router.get('/permits', getAllPermits);

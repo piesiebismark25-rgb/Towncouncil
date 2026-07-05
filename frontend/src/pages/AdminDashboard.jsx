@@ -49,6 +49,25 @@ const AdminDashboard = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  // User Management State
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
+  const [selectedUserDetail, setSelectedUserDetail] = useState(null);
+  
+  // Selected user for editing
+  const [editUserId, setEditUserId] = useState('');
+  const [editUsername, setEditUsername] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [editRole, setEditRole] = useState('citizen');
+
+  // New user form state
+  const [newUsername, setNewUsername] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newRole, setNewRole] = useState('citizen');
+
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -185,6 +204,120 @@ const AdminDashboard = () => {
   const downloadCSVReport = () => {
     const token = localStorage.getItem('token');
     window.open(`${API_BASE_URL}/admin/reports/csv?token=${token}`, '_blank');
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          username: newUsername,
+          email: newEmail,
+          password: newPassword,
+          role: newRole
+        })
+      });
+
+      const resData = await response.json();
+      if (response.ok) {
+        showNotification('User created successfully.');
+        setShowAddUserModal(false);
+        setNewUsername('');
+        setNewEmail('');
+        setNewPassword('');
+        setNewRole('citizen');
+        fetchData();
+      } else {
+        showNotification(resData.message || 'Error creating user', 'error');
+      }
+    } catch (err) {
+      showNotification('Error creating user.', 'error');
+    }
+  };
+
+  const handleEditUser = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const body = {
+        username: editUsername,
+        email: editEmail,
+        role: editRole
+      };
+      if (editPassword) {
+        body.password = editPassword;
+      }
+      const response = await fetch(`${API_BASE_URL}/admin/users/${editUserId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      const resData = await response.json();
+      if (response.ok) {
+        showNotification('User updated successfully.');
+        setShowEditUserModal(false);
+        setEditPassword('');
+        fetchData();
+      } else {
+        showNotification(resData.message || 'Error updating user', 'error');
+      }
+    } catch (err) {
+      showNotification('Error updating user.', 'error');
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const resData = await response.json();
+      if (response.ok) {
+        showNotification('User deleted successfully.');
+        fetchData();
+      } else {
+        showNotification(resData.message || 'Error deleting user', 'error');
+      }
+    } catch (err) {
+      showNotification('Error deleting user.', 'error');
+    }
+  };
+
+  const handleViewUserDetails = async (userId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/details`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const resData = await response.json();
+      if (response.ok) {
+        setSelectedUserDetail(resData.data);
+        setShowUserDetailsModal(true);
+      } else {
+        showNotification('Error fetching user details.', 'error');
+      }
+    } catch (err) {
+      showNotification('Error fetching user details.', 'error');
+    }
   };
 
   // Pie chart variables
@@ -341,12 +474,19 @@ const AdminDashboard = () => {
           {/* ======================================== */}
           {activeTab === 'users' && (
             <div className="animated-fade">
-              <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
-                User Portal Account Management
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-                Verify resident credentials, edit authority permissions, and switch administrator roles.
-              </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
+                    User Portal Account Management
+                  </h2>
+                  <p style={{ color: 'var(--text-secondary)' }}>
+                    Verify resident credentials, edit authority permissions, and manage administrator/citizen accounts.
+                  </p>
+                </div>
+                <button className="btn btn-primary" onClick={() => setShowAddUserModal(true)}>
+                  Add New User
+                </button>
+              </div>
 
               <div className="table-container">
                 <table className="data-table">
@@ -373,9 +513,23 @@ const AdminDashboard = () => {
                         </td>
                         <td>{new Date(u.createdAt).toLocaleDateString()}</td>
                         <td>
-                          <button className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => handleUpdateRole(u._id, u.role)}>
-                            Change permissions to {u.role === 'admin' ? 'Citizen' : 'Admin'}
-                          </button>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => handleViewUserDetails(u._id)}>
+                              View Details
+                            </button>
+                            <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => {
+                              setEditUserId(u._id);
+                              setEditUsername(u.username);
+                              setEditEmail(u.email);
+                              setEditRole(u.role);
+                              setShowEditUserModal(true);
+                            }}>
+                              Edit
+                            </button>
+                            <button className="btn btn-danger" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', backgroundColor: 'var(--danger)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }} onClick={() => handleDeleteUser(u._id)}>
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -636,6 +790,176 @@ const AdminDashboard = () => {
                 <button type="submit" className="btn btn-primary">Submit Decision</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Add User Modal */}
+      {showAddUserModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="card animated-fade" style={{ width: '450px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>Add New User Account</h3>
+            
+            <form onSubmit={handleCreateUser}>
+              <div className="form-group">
+                <label className="form-label">Full Name</label>
+                <input type="text" className="form-input" required placeholder="e.g. Samuel Green" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email Address</label>
+                <input type="email" className="form-input" required placeholder="e.g. sam@towncouncil.gov" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Password</label>
+                <input type="password" className="form-input" required placeholder="Min 6 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Account Role</label>
+                <select className="form-input" value={newRole} onChange={(e) => setNewRole(e.target.value)}>
+                  <option value="citizen">Citizen (Resident Portal)</option>
+                  <option value="admin">Administrator (Staff Portal)</option>
+                </select>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddUserModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Create User</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditUserModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="card animated-fade" style={{ width: '450px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>Edit User Profile</h3>
+            
+            <form onSubmit={handleEditUser}>
+              <div className="form-group">
+                <label className="form-label">Full Name</label>
+                <input type="text" className="form-input" required value={editUsername} onChange={(e) => setEditUsername(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email Address</label>
+                <input type="email" className="form-input" required value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">New Password (leave blank to keep current)</label>
+                <input type="password" className="form-input" placeholder="••••••••" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Account Role</label>
+                <select className="form-input" value={editRole} onChange={(e) => setEditRole(e.target.value)}>
+                  <option value="citizen">Citizen (Resident Portal)</option>
+                  <option value="admin">Administrator (Staff Portal)</option>
+                </select>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditUserModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* User Details Modal */}
+      {showUserDetailsModal && selectedUserDetail && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="card animated-fade" style={{ width: '650px', maxWidth: '90%', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.5rem', marginBottom: '0.25rem' }}>
+                  {selectedUserDetail.user.username}
+                </h3>
+                <span className={`badge ${selectedUserDetail.user.role === 'admin' ? 'badge-danger' : 'badge-success'}`}>
+                  {selectedUserDetail.user.role}
+                </span>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginLeft: '1rem' }}>
+                  Joined: {new Date(selectedUserDetail.user.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+              <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem' }} onClick={() => setShowUserDetailsModal(false)}>
+                Close
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div>
+                <h4 style={{ fontSize: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.75rem', fontFamily: 'var(--font-heading)' }}>
+                  Contact Information
+                </h4>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  Email Address: <strong>{selectedUserDetail.user.email}</strong>
+                </p>
+              </div>
+
+              <div>
+                <h4 style={{ fontSize: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.75rem', fontFamily: 'var(--font-heading)' }}>
+                  Service Requests History ({selectedUserDetail.requests.length})
+                </h4>
+                {selectedUserDetail.requests.length === 0 ? (
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No requests filed.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {selectedUserDetail.requests.map(req => (
+                      <div key={req._id} style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: 'var(--bg-tertiary)', padding: '0.5rem 0.75rem', borderRadius: '4px' }}>
+                        <div>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{req.title}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginLeft: '0.75rem' }}>({req.category})</span>
+                        </div>
+                        <span className={`badge ${req.status === 'resolved' ? 'badge-success' : req.status === 'in-progress' ? 'badge-pending' : 'badge-danger'}`} style={{ fontSize: '0.7rem' }}>
+                          {req.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h4 style={{ fontSize: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.75rem', fontFamily: 'var(--font-heading)' }}>
+                  Permit Applications History ({selectedUserDetail.permits.length})
+                </h4>
+                {selectedUserDetail.permits.length === 0 ? (
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No permit applications.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {selectedUserDetail.permits.map(permit => (
+                      <div key={permit._id} style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: 'var(--bg-tertiary)', padding: '0.5rem 0.75rem', borderRadius: '4px' }}>
+                        <div>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{permit.title}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginLeft: '0.75rem' }}>({permit.permitType})</span>
+                        </div>
+                        <span className={`badge ${permit.status === 'approved' ? 'badge-success' : permit.status === 'rejected' ? 'badge-danger' : 'badge-pending'}`} style={{ fontSize: '0.7rem' }}>
+                          {permit.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h4 style={{ fontSize: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', marginBottom: '0.75rem', fontFamily: 'var(--font-heading)' }}>
+                  Tax Payments Summary
+                </h4>
+                {selectedUserDetail.taxes.length === 0 ? (
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No tax bills found.</p>
+                ) : (
+                  <div style={{ fontSize: '0.85rem' }}>
+                    <p style={{ marginBottom: '0.5rem' }}>
+                      Billed Amount: <strong>${selectedUserDetail.taxes.reduce((acc, curr) => acc + curr.amount, 0).toFixed(2)}</strong>
+                    </p>
+                    <p>
+                      Paid Amount: <strong style={{ color: 'var(--success)' }}>${selectedUserDetail.taxes.filter(t => t.status === 'paid').reduce((acc, curr) => acc + curr.amount, 0).toFixed(2)}</strong>
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

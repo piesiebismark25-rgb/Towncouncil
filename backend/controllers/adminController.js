@@ -1,6 +1,7 @@
 import { User, TaxPayment, PermitApplication, EventBooking, ServiceRequest, Announcement } from '../models/dbFactory.js';
 import fs from 'fs';
 import path from 'path';
+import bcrypt from 'bcryptjs';
 
 // ==========================================
 // 1. Data Analytics & Insights
@@ -105,6 +106,158 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
+// @desc    Create a new user
+// @route   POST /api/admin/users
+// @access  Private/Admin
+export const createUser = async (req, res) => {
+  try {
+    const { username, email, password, role } = req.body;
+
+    if (!username || !email || !password || !role) {
+      return res.status(400).json({ status: 'error', message: 'All fields are required' });
+    }
+
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ status: 'error', message: 'User already exists with this email' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const user = await User.create({
+      username,
+      email,
+      password: hashedPassword,
+      role
+    });
+
+    res.status(201).json({
+      status: 'success',
+      data: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt
+      }
+    });
+  } catch (err) {
+    console.error('Create User Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error creating user' });
+  }
+};
+
+// @desc    Edit user profile
+// @route   PUT /api/admin/users/:id
+// @access  Private/Admin
+export const editUser = async (req, res) => {
+  try {
+    const { username, email, password, role } = req.body;
+    const userId = req.params.id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    if (email && email !== user.email) {
+      const emailTaken = await User.findOne({ email });
+      if (emailTaken) {
+        return res.status(400).json({ status: 'error', message: 'Email already taken by another account' });
+      }
+    }
+
+    const updateData = {};
+    if (username) updateData.username = username;
+    if (email) updateData.email = email;
+    if (role) updateData.role = role;
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      updateData.password = await bcrypt.hash(password, salt);
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updateData);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'User updated successfully',
+      data: {
+        _id: updatedUser._id,
+        username: username || updatedUser.username,
+        email: email || updatedUser.email,
+        role: role || updatedUser.role
+      }
+    });
+  } catch (err) {
+    console.error('Edit User Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error updating user' });
+  }
+};
+
+// @desc    Delete user
+// @route   DELETE /api/admin/users/:id
+// @access  Private/Admin
+export const deleteUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    if (req.user && req.user.id && req.user.id.toString() === userId.toString()) {
+      return res.status(400).json({ status: 'error', message: 'Self-deletion is forbidden' });
+    }
+
+    const deletedUser = await User.findByIdAndDelete(userId);
+    if (!deletedUser) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    res.status(200).json({ status: 'success', message: 'User deleted successfully' });
+  } catch (err) {
+    console.error('Delete User Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error deleting user' });
+  }
+};
+
+// @desc    Get user full history details
+// @route   GET /api/admin/users/:id/details
+// @access  Private/Admin
+export const getUserDetails = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    const [taxes, permits, bookings, requests] = await Promise.all([
+      TaxPayment.find({ citizenId: userId }),
+      PermitApplication.find({ citizenId: userId }),
+      EventBooking.find({ citizenId: userId }),
+      ServiceRequest.find({ citizenId: userId })
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user: {
+          _id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          createdAt: user.createdAt
+        },
+        taxes,
+        permits,
+        bookings,
+        requests
+      }
+    });
+  } catch (err) {
+    console.error('Get User Details Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error fetching user details' });
+  }
+};
+
 // @desc    Update user role
 // @route   POST /api/admin/users/:id/role
 // @access  Private/Admin
@@ -188,6 +341,89 @@ export const updateServiceRequest = async (req, res) => {
   } catch (err) {
     console.error('Update Service Request Error:', err.message);
     res.status(500).json({ status: 'error', message: 'Error updating service request' });
+  }
+};
+
+// @desc    Create service request on behalf of a citizen
+// @route   POST /api/admin/requests
+// @access  Private/Admin
+export const createRequestOnBehalf = async (req, res) => {
+  try {
+    const { citizenId, title, description, category, priority } = req.body;
+
+    if (!citizenId || !title || !description || !category || !priority) {
+      return res.status(400).json({ status: 'error', message: 'All fields are required' });
+    }
+
+    const citizen = await User.findById(citizenId);
+    if (!citizen) {
+      return res.status(404).json({ status: 'error', message: 'Citizen not found' });
+    }
+
+    const request = await ServiceRequest.create({
+      citizenId,
+      citizenName: citizen.username,
+      title,
+      description,
+      category,
+      priority,
+      status: 'submitted',
+      updates: [{
+        status: 'submitted',
+        comment: 'Service request lodged by Admin on behalf of citizen.'
+      }]
+    });
+
+    res.status(201).json({ status: 'success', data: request });
+  } catch (err) {
+    console.error('Create Request On Behalf Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error creating request' });
+  }
+};
+
+// @desc    Edit service request details
+// @route   PUT /api/admin/requests/:id
+// @access  Private/Admin
+export const editRequest = async (req, res) => {
+  try {
+    const { title, description, category, priority } = req.body;
+    const reqId = req.params.id;
+
+    const request = await ServiceRequest.findById(reqId);
+    if (!request) {
+      return res.status(404).json({ status: 'error', message: 'Request not found' });
+    }
+
+    const updated = await ServiceRequest.findByIdAndUpdate(reqId, {
+      title: title || request.title,
+      description: description || request.description,
+      category: category || request.category,
+      priority: priority || request.priority
+    }, { new: true });
+
+    res.status(200).json({ status: 'success', data: updated });
+  } catch (err) {
+    console.error('Edit Request Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error updating request' });
+  }
+};
+
+// @desc    Delete service request
+// @route   DELETE /api/admin/requests/:id
+// @access  Private/Admin
+export const deleteRequest = async (req, res) => {
+  try {
+    const reqId = req.params.id;
+
+    const deleted = await ServiceRequest.findByIdAndDelete(reqId);
+    if (!deleted) {
+      return res.status(404).json({ status: 'error', message: 'Request not found' });
+    }
+
+    res.status(200).json({ status: 'success', message: 'Request deleted successfully' });
+  } catch (err) {
+    console.error('Delete Request Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error deleting request' });
   }
 };
 
