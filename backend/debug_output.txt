@@ -8,3 +8,11 @@ Error Stack: MongooseServerSelectionError: connect ECONNREFUSED 127.0.0.1:27017
     at _handleConnectionErrors (C:\Users\Piesie\OneDrive\Desktop\project Work\backend\node_modules\mongoose\lib\connection.js:1169:11)
     at NativeConnection.openUri (C:\Users\Piesie\OneDrive\Desktop\project Work\backend\node_modules\mongoose\lib\connection.js:1100:11)
     at async connectDB (file:///C:/Users/Piesie/OneDrive/Desktop/project%20Work/backend/config/db.js:20:18)
+
+
+
+
+
+PORT=5000
+MONGO_URI=mongodb+srv://piesiebismark25_db_user:tk8KScGGRAguKYQq@towncouncil.sy0eqil.mongodb.net/?appName=towncouncil
+JWT_SECRET=supersecretkey_change_me_in_production
