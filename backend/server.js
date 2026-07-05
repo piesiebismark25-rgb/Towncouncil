@@ -8,8 +8,15 @@ import serviceRoutes from './routes/serviceRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import { seedDatabase } from './models/dbFactory.js';
 
-// Load environment variables
-dotenv.config();
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables using absolute path
+const envConfig = dotenv.config({ path: path.resolve(__dirname, '.env') });
+console.log('Dotenv Load Result:', envConfig);
 
 // Connect to Database
 connectDB().then(() => {

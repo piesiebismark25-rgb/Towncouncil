@@ -1,0 +1,10 @@
+Time: 2026-06-15T16:02:17.023Z
+MONGO_URI in env: "mongodb://127.0.0.1:27017/town_council"
+JWT_SECRET in env: "supersecretkey_change_me_in_production"
+PORT in env: "5000"
+Attempting mongoose connection...
+MongoDB connection failed: connect ECONNREFUSED 127.0.0.1:27017
+Error Stack: MongooseServerSelectionError: connect ECONNREFUSED 127.0.0.1:27017
+    at _handleConnectionErrors (C:\Users\Piesie\OneDrive\Desktop\project Work\backend\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (C:\Users\Piesie\OneDrive\Desktop\project Work\backend\node_modules\mongoose\lib\connection.js:1100:11)
+    at async connectDB (file:///C:/Users/Piesie/OneDrive/Desktop/project%20Work/backend/config/db.js:20:18)
