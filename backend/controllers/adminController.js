@@ -480,15 +480,36 @@ export const updatePermitStatus = async (req, res) => {
 // 5. Announcements Management
 // ==========================================
 
+const saveBase64Image = (base64Str) => {
+  if (!base64Str) return null;
+  const match = base64Str.match(/^data:image\/(\w+);base64,(.+)$/);
+  if (!match) return null;
+  const ext = match[1];
+  const data = match[2];
+  const filename = `announce_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+  const uploadDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  const filePath = path.join(uploadDir, filename);
+  fs.writeFileSync(filePath, Buffer.from(data, 'base64'));
+  return `/uploads/${filename}`;
+};
+
 // @desc    Create announcement
 // @route   POST /api/admin/announcements
 // @access  Private/Admin
 export const createAnnouncement = async (req, res) => {
   try {
-    const { title, content, type, targetAudience } = req.body;
+    const { title, content, type, targetAudience, image } = req.body;
 
     if (!title || !content) {
       return res.status(400).json({ status: 'error', message: 'Please provide title and content' });
+    }
+
+    let imageUrl = '';
+    if (image) {
+      imageUrl = saveBase64Image(image) || '';
     }
 
     const newAnnouncement = await Announcement.create({
@@ -496,6 +517,7 @@ export const createAnnouncement = async (req, res) => {
       content,
       type: type || 'general',
       targetAudience: targetAudience || 'all',
+      imageUrl,
       date: new Date()
     });
 
@@ -511,17 +533,23 @@ export const createAnnouncement = async (req, res) => {
 // @access  Private/Admin
 export const updateAnnouncement = async (req, res) => {
   try {
-    const { title, content, type, targetAudience } = req.body;
+    const { title, content, type, targetAudience, image } = req.body;
     const ann = await Announcement.findById(req.params.id);
     if (!ann) {
       return res.status(404).json({ status: 'error', message: 'Announcement not found' });
+    }
+
+    let imageUrl = ann.imageUrl;
+    if (image) {
+      imageUrl = saveBase64Image(image) || imageUrl;
     }
 
     const updated = await Announcement.findByIdAndUpdate(req.params.id, {
       title: title || ann.title,
       content: content || ann.content,
       type: type || ann.type,
-      targetAudience: targetAudience || ann.targetAudience
+      targetAudience: targetAudience || ann.targetAudience,
+      imageUrl
     }, { new: true });
 
     res.status(200).json({ status: 'success', data: updated });
@@ -561,6 +589,10 @@ export const createPermitOnBehalf = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Citizen not found' });
     }
 
+    if (status !== undefined && (!status || !['pending', 'approved', 'rejected'].includes(status))) {
+      return res.status(400).json({ status: 'error', message: 'Invalid permit status value' });
+    }
+
     const newPermit = await PermitApplication.create({
       citizenId,
       citizenName: citizen.username,
@@ -588,6 +620,10 @@ export const editPermit = async (req, res) => {
     const permit = await PermitApplication.findById(req.params.id);
     if (!permit) {
       return res.status(404).json({ status: 'error', message: 'Permit application not found' });
+    }
+
+    if (status !== undefined && (!status || !['pending', 'approved', 'rejected'].includes(status))) {
+      return res.status(400).json({ status: 'error', message: 'Invalid permit status value' });
     }
 
     const updated = await PermitApplication.findByIdAndUpdate(req.params.id, {
@@ -649,6 +685,10 @@ export const createBookingOnBehalf = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Citizen not found' });
     }
 
+    if (status !== undefined && (!status || !['pending', 'approved', 'cancelled'].includes(status))) {
+      return res.status(400).json({ status: 'error', message: 'Invalid booking status value' });
+    }
+
     const newBooking = await EventBooking.create({
       citizenId,
       citizenName: citizen.username,
@@ -677,6 +717,10 @@ export const updateBooking = async (req, res) => {
     const booking = await EventBooking.findById(req.params.id);
     if (!booking) {
       return res.status(404).json({ status: 'error', message: 'Event booking not found' });
+    }
+
+    if (status !== undefined && (!status || !['pending', 'approved', 'cancelled'].includes(status))) {
+      return res.status(400).json({ status: 'error', message: 'Invalid booking status value' });
     }
 
     const updated = await EventBooking.findByIdAndUpdate(req.params.id, {
@@ -739,6 +783,10 @@ export const createTaxBill = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Citizen not found' });
     }
 
+    if (status !== undefined && (!status || !['pending', 'paid'].includes(status))) {
+      return res.status(400).json({ status: 'error', message: 'Invalid tax payment status value' });
+    }
+
     const newTax = await TaxPayment.create({
       citizenId,
       citizenName: citizen.username,
@@ -763,6 +811,10 @@ export const editTaxBill = async (req, res) => {
     const tax = await TaxPayment.findById(req.params.id);
     if (!tax) {
       return res.status(404).json({ status: 'error', message: 'Tax record not found' });
+    }
+
+    if (status !== undefined && (!status || !['pending', 'paid'].includes(status))) {
+      return res.status(400).json({ status: 'error', message: 'Invalid tax payment status value' });
     }
 
     const updated = await TaxPayment.findByIdAndUpdate(req.params.id, {

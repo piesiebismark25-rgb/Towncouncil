@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, Clock } from 'lucide-react';
 
-const CalendarView = ({ events, onBookEvent }) => {
+const CalendarView = ({ events, onBookEvent, onViewEvent }) => {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 4, 1)); // Seed to May 2026
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('');
@@ -84,6 +84,10 @@ const CalendarView = ({ events, onBookEvent }) => {
           {dayEvents.map((evt, idx) => (
             <div 
               key={idx} 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onViewEvent) onViewEvent(evt);
+              }}
               style={{ 
                 fontSize: '0.7rem', 
                 backgroundColor: 'var(--accent-light)', 
@@ -94,7 +98,8 @@ const CalendarView = ({ events, onBookEvent }) => {
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 fontWeight: 650,
-                borderLeft: '2px solid var(--border-focus)'
+                borderLeft: '2px solid var(--border-focus)',
+                cursor: 'pointer'
               }}
               title={`${evt.title} (${evt.timeSlot})`}
             >

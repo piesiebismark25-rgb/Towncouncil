@@ -65,7 +65,8 @@ const AnnouncementSchema = new mongoose.Schema({
   content: { type: String, required: true },
   type: { type: String, enum: ['general', 'event', 'urgent'], default: 'general' },
   date: { type: Date, default: Date.now },
-  targetAudience: { type: String, default: 'all' }
+  targetAudience: { type: String, default: 'all' },
+  imageUrl: { type: String }
 });
 
 export {

@@ -45,6 +45,23 @@ const CitizenDashboard = () => {
   const [activeTimelineItem, setActiveTimelineItem] = useState(null);
   const [timelineType, setTimelineType] = useState('');
 
+  // View detail states
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [previousTab, setPreviousTab] = useState('overview');
+
+  const handleViewAnnouncement = (ann) => {
+    setSelectedAnnouncement(ann);
+    setPreviousTab(activeTab);
+    setActiveTab('announcement-detail');
+  };
+
+  const handleViewBooking = (booking) => {
+    setSelectedBooking(booking);
+    setPreviousTab(activeTab);
+    setActiveTab('booking-detail');
+  };
+
   const [submittingPermit, setSubmittingPermit] = useState(false);
   const [submittingRequest, setSubmittingRequest] = useState(false);
 
@@ -343,13 +360,33 @@ const CitizenDashboard = () => {
                       </div>
                     ) : (
                       announcements.slice(0, 3).map((ann, idx) => (
-                        <div key={idx} className="card" style={{ borderLeft: `4px solid ${ann.type === 'urgent' ? 'var(--danger)' : ann.type === 'event' ? 'var(--accent-color)' : 'var(--border-color)'}` }}>
+                        <div 
+                          key={idx} 
+                          className="card" 
+                          onClick={() => handleViewAnnouncement(ann)}
+                          style={{ 
+                            borderLeft: `4px solid ${ann.type === 'urgent' ? 'var(--danger)' : ann.type === 'event' ? 'var(--accent-color)' : 'var(--border-color)'}`,
+                            cursor: 'pointer',
+                            transition: 'all var(--transition-fast)'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
+                        >
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                             <h4 style={{ fontSize: '1rem', fontFamily: 'var(--font-heading)' }}>{ann.title}</h4>
                             <span className={`badge ${ann.type === 'urgent' ? 'badge-danger' : ann.type === 'event' ? 'badge-pending' : 'badge-success'}`}>
                               {ann.type}
                             </span>
                           </div>
+                          {ann.imageUrl && (
+                            <div style={{ marginBottom: '0.75rem', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
+                              <img 
+                                src={ann.imageUrl.startsWith('/') ? `${API_BASE_URL.replace('/api', '')}${ann.imageUrl}` : ann.imageUrl} 
+                                alt="Announcement Image" 
+                                style={{ width: '100%', maxHeight: '200px', objectFit: 'cover' }} 
+                              />
+                            </div>
+                          )}
                           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{ann.content}</p>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.75rem' }}>
                             Posted: {new Date(ann.date || ann.createdAt).toLocaleDateString()}
@@ -376,6 +413,41 @@ const CitizenDashboard = () => {
                     <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'flex-start' }} onClick={() => setActiveTab('events')}>
                       📅 Book Council Center Venue
                     </button>
+                  </div>
+
+                  <h3 style={{ fontSize: '1.25rem', marginTop: '2rem', marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>My Bookings & Events</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {bookings.length === 0 ? (
+                      <div className="card" style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
+                        No event bookings registered yet.
+                      </div>
+                    ) : (
+                      bookings.slice(0, 3).map((booking) => (
+                        <div 
+                          key={booking._id} 
+                          className="card" 
+                          onClick={() => handleViewBooking(booking)}
+                          style={{ 
+                            padding: '0.75rem 1rem', 
+                            cursor: 'pointer', 
+                            transition: 'all var(--transition-fast)',
+                            borderLeft: `3px solid ${booking.status === 'approved' ? 'var(--success)' : booking.status === 'cancelled' ? 'var(--danger)' : 'var(--pending)'}`
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{booking.title}</span>
+                            <span className={`badge ${booking.status === 'approved' ? 'badge-success' : booking.status === 'cancelled' ? 'badge-danger' : 'badge-pending'}`} style={{ fontSize: '0.7rem' }}>
+                              {booking.status}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                            {booking.date} | {booking.venue}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -536,7 +608,7 @@ const CitizenDashboard = () => {
               <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
                 Browse approved municipal events or register to book assembly rooms, pavilions, or recreation centers.
               </p>
-              <CalendarView events={bookings} onBookEvent={handleBookEvent} />
+              <CalendarView events={bookings} onBookEvent={handleBookEvent} onViewEvent={setSelectedBooking} />
 
               <div style={{ marginTop: '3rem' }}>
                 <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>My Reservation Requests</h3>
@@ -559,7 +631,7 @@ const CitizenDashboard = () => {
                         </tr>
                       ) : (
                         bookings.map(booking => (
-                          <tr key={booking._id}>
+                          <tr key={booking._id} onClick={() => handleViewBooking(booking)} style={{ cursor: 'pointer' }}>
                             <td style={{ fontWeight: 600 }}>{booking.title}</td>
                             <td>{booking.venue}</td>
                             <td>{booking.date} ({booking.timeSlot})</td>
@@ -570,7 +642,7 @@ const CitizenDashboard = () => {
                               </span>
                             </td>
                             <td>
-                              <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => { setActiveTimelineItem(booking); setTimelineType('booking'); }}>
+                              <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={(e) => { e.stopPropagation(); setActiveTimelineItem(booking); setTimelineType('booking'); }}>
                                 Track Status
                               </button>
                             </td>
@@ -794,6 +866,227 @@ const CitizenDashboard = () => {
             </div>
           )}
 
+          {/* ======================================== */}
+          {/* TAB 7: ANNOUNCEMENTS                     */}
+          {/* ======================================== */}
+          {activeTab === 'announcements' && (
+            <div className="animated-fade">
+              <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
+                Official Council Announcements
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+                Browse the complete feed of official municipal notifications, alerts, and council guidelines.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem', maxWidth: '800px' }}>
+                {announcements.length === 0 ? (
+                  <div className="card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-tertiary)' }}>
+                    No announcements posted by the council yet.
+                  </div>
+                ) : (
+                  announcements.map((ann, idx) => (
+                    <div 
+                      key={ann._id || idx} 
+                      className="card" 
+                      onClick={() => handleViewAnnouncement(ann)}
+                      style={{ 
+                        borderLeft: `6px solid ${ann.type === 'urgent' ? 'var(--danger)' : ann.type === 'event' ? 'var(--accent-color)' : 'var(--border-color)'}`, 
+                        padding: '1.75rem',
+                        cursor: 'pointer',
+                        transition: 'all var(--transition-fast)'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <h3 style={{ fontSize: '1.3rem', fontFamily: 'var(--font-heading)', margin: 0 }}>{ann.title}</h3>
+                        <span className={`badge ${ann.type === 'urgent' ? 'badge-danger' : ann.type === 'event' ? 'badge-pending' : 'badge-success'}`}>
+                          {ann.type.toUpperCase()}
+                        </span>
+                      </div>
+                      
+                      {ann.imageUrl && (
+                        <div style={{ marginBottom: '1.25rem', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                          <img 
+                            src={ann.imageUrl.startsWith('/') ? `${API_BASE_URL.replace('/api', '')}${ann.imageUrl}` : ann.imageUrl} 
+                            alt={ann.title} 
+                            style={{ width: '100%', maxHeight: '400px', objectFit: 'cover' }} 
+                          />
+                        </div>
+                      )}
+
+                      <p style={{ fontSize: '0.95rem', color: 'var(--text-primary)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                        {ann.content}
+                      </p>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        <span>Target: {ann.targetAudience === 'all' ? 'All Residents' : 'Citizens'}</span>
+                        <span>Posted on: {new Date(ann.date || ann.createdAt).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ======================================== */}
+          {/* TAB 8: ANNOUNCEMENT DETAIL PAGE VIEW     */}
+          {/* ======================================== */}
+          {activeTab === 'announcement-detail' && selectedAnnouncement && (
+            <div className="animated-fade" style={{ maxWidth: '800px', margin: '0 auto', padding: '1rem 0' }}>
+              <button 
+                className="btn btn-secondary" 
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', padding: '0.5rem 1rem' }}
+                onClick={() => setActiveTab(previousTab)}
+              >
+                ← Back to Dashboard
+              </button>
+
+              <div className="card" style={{ padding: '2rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', alignItems: 'center' }}>
+                  <span className={`badge ${selectedAnnouncement.type === 'urgent' ? 'badge-danger' : selectedAnnouncement.type === 'event' ? 'badge-pending' : 'badge-success'}`}>
+                    {selectedAnnouncement.type.toUpperCase()}
+                  </span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    Posted: {new Date(selectedAnnouncement.date || selectedAnnouncement.createdAt).toLocaleString()}
+                  </span>
+                </div>
+
+                <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '2.25rem', lineHeight: '1.25', marginBottom: '1.5rem', color: 'var(--text-primary)' }}>
+                  {selectedAnnouncement.title}
+                </h1>
+
+                {selectedAnnouncement.imageUrl && (
+                  <div style={{ marginBottom: '2rem', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+                    <img 
+                      src={selectedAnnouncement.imageUrl.startsWith('/') ? `${API_BASE_URL.replace('/api', '')}${selectedAnnouncement.imageUrl}` : selectedAnnouncement.imageUrl} 
+                      alt={selectedAnnouncement.title} 
+                      style={{ width: '100%', maxHeight: '450px', objectFit: 'cover' }} 
+                    />
+                  </div>
+                )}
+
+                <div style={{ 
+                  fontSize: '1.05rem', 
+                  color: 'var(--text-primary)', 
+                  lineHeight: '1.8', 
+                  whiteSpace: 'pre-wrap',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  padding: '1.5rem',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-color)',
+                  marginBottom: '2rem'
+                }}>
+                  {selectedAnnouncement.content}
+                </div>
+
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  fontSize: '0.85rem', 
+                  color: 'var(--text-secondary)',
+                  borderTop: '1px solid var(--border-color)',
+                  paddingTop: '1.25rem'
+                }}>
+                  <span>Target Audience: <strong>{selectedAnnouncement.targetAudience === 'all' ? 'All Residents' : 'Citizens Only'}</strong></span>
+                  <span>Verified Council Notice</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ======================================== */}
+          {/* TAB 9: BOOKING / EVENT DETAIL PAGE VIEW  */}
+          {/* ======================================== */}
+          {activeTab === 'booking-detail' && selectedBooking && (
+            <div className="animated-fade" style={{ maxWidth: '800px', margin: '0 auto', padding: '1rem 0' }}>
+              <button 
+                className="btn btn-secondary" 
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', padding: '0.5rem 1rem' }}
+                onClick={() => setActiveTab(previousTab)}
+              >
+                ← Back to Dashboard
+              </button>
+
+              <div className="card" style={{ padding: '2rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', alignItems: 'center' }}>
+                  <span className={`badge ${selectedBooking.status === 'approved' ? 'badge-success' : selectedBooking.status === 'cancelled' ? 'badge-danger' : 'badge-pending'}`}>
+                    {selectedBooking.status.toUpperCase()}
+                  </span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    Submitted: {new Date(selectedBooking.createdAt || Date.now()).toLocaleDateString()}
+                  </span>
+                </div>
+
+                <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '2.25rem', lineHeight: '1.25', marginBottom: '1.5rem', color: 'var(--text-primary)' }}>
+                  {selectedBooking.title}
+                </h1>
+
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: '1.25rem',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  padding: '1.5rem',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.95rem',
+                  marginBottom: '2rem',
+                  border: '1px solid var(--border-color)'
+                }}>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>Venue Location</span>
+                    <strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>{selectedBooking.venue}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>Reservation Date</span>
+                    <strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>{selectedBooking.date}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>Time Slot Duration</span>
+                    <strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>{selectedBooking.timeSlot}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>Expected Attendees</span>
+                    <strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>{selectedBooking.ticketsCount} tickets</strong>
+                  </div>
+                </div>
+
+                {selectedBooking.description && (
+                  <div style={{ marginBottom: '2rem' }}>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.5rem' }}>Reservation Description & Notes</span>
+                    <div style={{ 
+                      fontSize: '1rem', 
+                      lineHeight: '1.7', 
+                      color: 'var(--text-primary)', 
+                      whiteSpace: 'pre-wrap',
+                      backgroundColor: 'var(--bg-primary)',
+                      padding: '1.25rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-color)'
+                    }}>
+                      {selectedBooking.description}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  fontSize: '0.85rem', 
+                  color: 'var(--text-secondary)',
+                  borderTop: '1px solid var(--border-color)',
+                  paddingTop: '1.25rem'
+                }}>
+                  <span>Booked by: <strong>{selectedBooking.citizenName}</strong></span>
+                  <span>Confidential Municipal Record</span>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </main>
 
@@ -852,9 +1145,84 @@ const CitizenDashboard = () => {
               </button>
             </div>
 
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
               Tracking System Record: <strong>{activeTimelineItem.title || activeTimelineItem.taxType}</strong>
             </p>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '0.75rem',
+              backgroundColor: 'var(--bg-tertiary)',
+              padding: '1rem',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '0.85rem',
+              marginBottom: '1.5rem',
+              border: '1px solid var(--border-color)'
+            }}>
+              {timelineType === 'permit' && (
+                <>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Permit Type</span>
+                    <strong>{activeTimelineItem.permitType}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Submitted On</span>
+                    <span>{new Date(activeTimelineItem.submittedAt).toLocaleDateString()}</span>
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Project Specifications</span>
+                    <p style={{ margin: '0.25rem 0 0 0', whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>{activeTimelineItem.description}</p>
+                  </div>
+                </>
+              )}
+              {timelineType === 'booking' && (
+                <>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Venue Location</span>
+                    <strong>{activeTimelineItem.venue}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Reservation Date</span>
+                    <span>{activeTimelineItem.date}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Time Slot</span>
+                    <span>{activeTimelineItem.timeSlot}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Expected Attendees</span>
+                    <span>{activeTimelineItem.ticketsCount}</span>
+                  </div>
+                  {activeTimelineItem.description && (
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Reservation Notes</span>
+                      <p style={{ margin: '0.25rem 0 0 0', whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>{activeTimelineItem.description}</p>
+                    </div>
+                  )}
+                </>
+              )}
+              {timelineType === 'tax' && (
+                <>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Tax / Levy Category</span>
+                    <strong>{activeTimelineItem.taxType}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Billing Date</span>
+                    <span>{new Date(activeTimelineItem.billingDate).toLocaleDateString()}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Amount Due</span>
+                    <strong style={{ color: 'var(--text-primary)' }}>${activeTimelineItem.amount.toFixed(2)}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Receipt Reference</span>
+                    <span style={{ fontFamily: 'monospace' }}>{activeTimelineItem.receiptNumber || 'N/A'}</span>
+                  </div>
+                </>
+              )}
+            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative', paddingLeft: '1.5rem', borderLeft: '2px dashed var(--border-color)', marginLeft: '0.5rem' }}>
               {/* PERMIT TIMELINE */}

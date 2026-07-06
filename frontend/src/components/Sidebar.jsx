@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Receipt, 
@@ -12,8 +12,25 @@ import {
 } from 'lucide-react';
 
 const Sidebar = ({ activeTab, setActiveTab, role }) => {
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (document.body.classList.contains('mobile-sidebar-open')) {
+        const sidebarEl = document.querySelector('.sidebar');
+        const menuToggleBtn = document.querySelector('.mobile-menu-toggle');
+        if (sidebarEl && !sidebarEl.contains(event.target) && (!menuToggleBtn || !menuToggleBtn.contains(event.target))) {
+          document.body.classList.remove('mobile-sidebar-open');
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, []);
+
   const citizenItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone },
     { id: 'taxes', label: 'Tax Payments', icon: Receipt },
     { id: 'permits', label: 'Permits', icon: FileText },
     { id: 'events', label: 'Events Calendar', icon: Calendar },

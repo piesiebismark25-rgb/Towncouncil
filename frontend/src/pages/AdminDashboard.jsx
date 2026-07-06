@@ -41,15 +41,16 @@ const AdminDashboard = () => {
   const [annContent, setAnnContent] = useState('');
   const [annType, setAnnType] = useState('general');
   const [annAudience, setAnnAudience] = useState('all');
+  const [annImage, setAnnImage] = useState('');
 
   // Request update state
   const [activeRequest, setActiveRequest] = useState(null);
-  const [requestStatus, setRequestStatus] = useState('in-progress');
+  const [requestStatus, setRequestStatus] = useState('');
   const [requestComment, setRequestComment] = useState('');
 
   // Permit status state
   const [activePermit, setActivePermit] = useState(null);
-  const [permitStatus, setPermitStatus] = useState('approved');
+  const [permitStatus, setPermitStatus] = useState('');
   const [permitComment, setPermitComment] = useState('');
 
   const [successMsg, setSuccessMsg] = useState('');
@@ -158,6 +159,10 @@ const AdminDashboard = () => {
   const handleUpdateRequestStatus = async (e) => {
     e.preventDefault();
     if (!activeRequest) return;
+    if (!requestStatus) {
+      showNotification('Please select a status option first.', 'error');
+      return;
+    }
     setSubmittingRequestStatus(true);
     try {
       const token = localStorage.getItem('token');
@@ -186,6 +191,10 @@ const AdminDashboard = () => {
   const handleUpdatePermitStatus = async (e) => {
     e.preventDefault();
     if (!activePermit) return;
+    if (!permitStatus) {
+      showNotification('Please select a decision outcome first.', 'error');
+      return;
+    }
     setSubmittingPermitStatus(true);
     try {
       const token = localStorage.getItem('token');
@@ -222,13 +231,16 @@ const AdminDashboard = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ title: annTitle, content: annContent, type: annType, targetAudience: annAudience })
+        body: JSON.stringify({ title: annTitle, content: annContent, type: annType, targetAudience: annAudience, image: annImage || undefined })
       });
 
       if (response.ok) {
         showNotification('Announcement posted successfully.');
         setAnnTitle('');
         setAnnContent('');
+        setAnnImage('');
+        const fileInput = document.getElementById('announce-image-input');
+        if (fileInput) fileInput.value = '';
         fetchData();
       }
     } catch (err) {
@@ -480,7 +492,7 @@ const AdminDashboard = () => {
   const [editPermitTitle, setEditPermitTitle] = useState('');
   const [editPermitDescription, setEditPermitDescription] = useState('');
   const [editPermitType, setEditPermitType] = useState('Building Permit');
-  const [editPermitStatus, setEditPermitStatus] = useState('pending');
+  const [editPermitStatus, setEditPermitStatus] = useState('');
   const [editPermitComments, setEditPermitComments] = useState('');
 
   const handleCreatePermit = async (e) => {
@@ -524,6 +536,10 @@ const AdminDashboard = () => {
 
   const handleEditPermit = async (e) => {
     e.preventDefault();
+    if (!editPermitStatus) {
+      showNotification('Please select a status option first.', 'error');
+      return;
+    }
     setSubmittingEditPermit(true);
     try {
       const token = localStorage.getItem('token');
@@ -591,7 +607,7 @@ const AdminDashboard = () => {
   const [editBookingDate, setEditBookingDate] = useState('');
   const [editBookingTimeSlot, setEditBookingTimeSlot] = useState('09:00 - 12:00');
   const [editBookingVenue, setEditBookingVenue] = useState('Town Hall Center');
-  const [editBookingStatus, setEditBookingStatus] = useState('pending');
+  const [editBookingStatus, setEditBookingStatus] = useState('');
   const [editBookingTickets, setEditBookingTickets] = useState(1);
 
   const handleCreateBooking = async (e) => {
@@ -639,6 +655,10 @@ const AdminDashboard = () => {
 
   const handleEditBooking = async (e) => {
     e.preventDefault();
+    if (!editBookingStatus) {
+      showNotification('Please select a booking status first.', 'error');
+      return;
+    }
     setSubmittingEditBooking(true);
     try {
       const token = localStorage.getItem('token');
@@ -698,18 +718,22 @@ const AdminDashboard = () => {
   const [newTaxCitizenId, setNewTaxCitizenId] = useState('');
   const [newTaxAmount, setNewTaxAmount] = useState('');
   const [newTaxType, setNewTaxType] = useState('Property Tax');
-  const [newTaxStatus, setNewTaxStatus] = useState('pending');
+  const [newTaxStatus, setNewTaxStatus] = useState('');
   const [newTaxBillingDate, setNewTaxBillingDate] = useState('');
   const [editTaxId, setEditTaxId] = useState('');
   const [editTaxAmount, setEditTaxAmount] = useState('');
   const [editTaxType, setEditTaxType] = useState('Property Tax');
-  const [editTaxStatus, setEditTaxStatus] = useState('pending');
+  const [editTaxStatus, setEditTaxStatus] = useState('');
   const [editTaxBillingDate, setEditTaxBillingDate] = useState('');
 
   const handleCreateTax = async (e) => {
     e.preventDefault();
     if (!newTaxCitizenId) {
       showNotification('Please select a citizen.', 'error');
+      return;
+    }
+    if (!newTaxStatus) {
+      showNotification('Please select an initial status first.', 'error');
       return;
     }
     setSubmittingCreateTax(true);
@@ -748,6 +772,10 @@ const AdminDashboard = () => {
 
   const handleEditTax = async (e) => {
     e.preventDefault();
+    if (!editTaxStatus) {
+      showNotification('Please select a payment status first.', 'error');
+      return;
+    }
     setSubmittingEditTax(true);
     try {
       const token = localStorage.getItem('token');
@@ -805,6 +833,7 @@ const AdminDashboard = () => {
   const [editAnnContent, setEditAnnContent] = useState('');
   const [editAnnType, setEditAnnType] = useState('general');
   const [editAnnAudience, setEditAnnAudience] = useState('all');
+  const [editAnnImage, setEditAnnImage] = useState('');
 
   const handleEditAnnouncement = async (e) => {
     e.preventDefault();
@@ -821,12 +850,14 @@ const AdminDashboard = () => {
           title: editAnnTitle,
           content: editAnnContent,
           type: editAnnType,
-          targetAudience: editAnnAudience
+          targetAudience: editAnnAudience,
+          image: editAnnImage || undefined
         })
       });
       if (response.ok) {
         showNotification('Announcement updated successfully.');
         setShowEditAnnModal(false);
+        setEditAnnImage('');
         fetchData();
       } else {
         const resData = await response.json();
@@ -1136,7 +1167,7 @@ const AdminDashboard = () => {
                           <td>{new Date(req.submittedAt).toLocaleDateString()}</td>
                           <td>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              <button className="btn btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => { setActiveRequest(req); setRequestStatus(req.status); }}>
+                              <button className="btn btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => { setActiveRequest(req); setRequestStatus(''); }}>
                                 Update Status
                               </button>
                               <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => {
@@ -1217,7 +1248,7 @@ const AdminDashboard = () => {
                           <td>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                               {permit.status === 'pending' ? (
-                                <button className="btn btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => setActivePermit(permit)}>
+                               <button className="btn btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => { setActivePermit(permit); setPermitStatus(''); }}>
                                   Review & Decide
                                 </button>
                               ) : (
@@ -1228,7 +1259,7 @@ const AdminDashboard = () => {
                                 setEditPermitTitle(permit.title);
                                 setEditPermitDescription(permit.description);
                                 setEditPermitType(permit.permitType);
-                                setEditPermitStatus(permit.status);
+                                setEditPermitStatus('');
                                 setEditPermitComments(permit.comments || '');
                                 setShowEditPermitModal(true);
                               }}>
@@ -1312,7 +1343,7 @@ const AdminDashboard = () => {
                                 setEditBookingDate(b.date ? b.date.substring(0, 10) : '');
                                 setEditBookingTimeSlot(b.timeSlot);
                                 setEditBookingVenue(b.venue);
-                                setEditBookingStatus(b.status);
+                                setEditBookingStatus('');
                                 setEditBookingTickets(b.ticketsCount);
                                 setShowEditBookingModal(true);
                               }}>
@@ -1389,7 +1420,7 @@ const AdminDashboard = () => {
                                 setEditTaxId(t._id);
                                 setEditTaxAmount(t.amount);
                                 setEditTaxType(t.taxType);
-                                setEditTaxStatus(t.status);
+                                setEditTaxStatus('');
                                 setEditTaxBillingDate(t.billingDate ? t.billingDate.substring(0, 10) : '');
                                 setShowEditTaxModal(true);
                               }}>
@@ -1463,6 +1494,42 @@ const AdminDashboard = () => {
                       <textarea className="form-input" style={{ minHeight: '120px' }} required placeholder="Describe full details of the notice..." value={annContent} onChange={(e) => setAnnContent(e.target.value)} />
                     </div>
 
+                    <div className="form-group">
+                      <label className="form-label">Upload Announcement Image</label>
+                      <input 
+                        type="file" 
+                        id="announce-image-input" 
+                        accept="image/*" 
+                        className="form-input" 
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setAnnImage(reader.result);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }} 
+                      />
+                      {annImage && (
+                        <div style={{ marginTop: '0.5rem', position: 'relative', display: 'inline-block' }}>
+                          <img src={annImage} alt="Preview" style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: 'var(--radius-sm)' }} />
+                          <button 
+                            type="button" 
+                            className="btn btn-danger" 
+                            style={{ position: 'absolute', top: '5px', right: '5px', padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} 
+                            onClick={() => {
+                              setAnnImage('');
+                              document.getElementById('announce-image-input').value = '';
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={submittingAnnouncement}>
                       <Megaphone size={18} /> {submittingAnnouncement ? 'Publishing...' : 'Publish Announcement'}
                     </button>
@@ -1492,7 +1559,18 @@ const AdminDashboard = () => {
                       ) : (
                         announcements.map(ann => (
                           <tr key={ann._id}>
-                            <td style={{ fontWeight: 600 }}>{ann.title}</td>
+                            <td style={{ fontWeight: 600 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                {ann.imageUrl && (
+                                  <img 
+                                    src={ann.imageUrl.startsWith('/') ? `${API_BASE_URL.replace('/api', '')}${ann.imageUrl}` : ann.imageUrl} 
+                                    alt="Thumb" 
+                                    style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: 'var(--radius-xs)', flexShrink: 0 }} 
+                                  />
+                                )}
+                                <span>{ann.title}</span>
+                              </div>
+                            </td>
                             <td>
                               <span className={`badge ${ann.type === 'urgent' ? 'badge-danger' : ann.type === 'event' ? 'badge-pending' : 'badge-success'}`}>
                                 {ann.type}
@@ -1530,75 +1608,154 @@ const AdminDashboard = () => {
       </main>
 
       {/* Request Update Modal */}
-      {activeRequest && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="card animated-fade" style={{ width: '450px', maxWidth: '90%' }}>
-            <h3 style={{ marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>Update Service Request</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              Updating: <strong>{activeRequest.title}</strong>
-            </p>
-            
-            <form onSubmit={handleUpdateRequestStatus}>
-              <div className="form-group">
-                <label className="form-label">New Status Classification</label>
-                <select className="form-input" value={requestStatus} onChange={(e) => setRequestStatus(e.target.value)}>
-                  <option value="submitted">Submitted (Awaiting Action)</option>
-                  <option value="in-progress">In-Progress (Team Dispatched)</option>
-                  <option value="resolved">Resolved (Completed)</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Timeline Comment / Update Details</label>
-                <textarea className="form-input" style={{ minHeight: '100px' }} required placeholder="e.g. Maintenance crew dispatched to fix pothole." value={requestComment} onChange={(e) => setRequestComment(e.target.value)} />
+      {activeRequest && (() => {
+        const requestUser = users.find(u => u.username === activeRequest.citizenName || u._id === activeRequest.citizenId);
+        const requestUserEmail = requestUser ? requestUser.email : 'N/A';
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+            <div className="card animated-fade" style={{ width: '550px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+              <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-heading)' }}>Update Service Request</h3>
+              
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '0.75rem',
+                backgroundColor: 'var(--bg-tertiary)',
+                padding: '1rem',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.85rem',
+                marginBottom: '1.25rem',
+                border: '1px solid var(--border-color)'
+              }}>
+                <div>
+                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Citizen Submitter</span>
+                  <strong>{activeRequest.citizenName}</strong> {requestUserEmail !== 'N/A' && <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'block' }}>{requestUserEmail}</span>}
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Category & Priority</span>
+                  <strong>{activeRequest.category}</strong> / <span style={{ color: activeRequest.priority === 'high' ? 'var(--danger)' : 'inherit', fontWeight: activeRequest.priority === 'high' ? 700 : 'normal' }}>{activeRequest.priority}</span>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Request Title</span>
+                  <strong style={{ fontSize: '0.9rem' }}>{activeRequest.title}</strong>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Detailed Description</span>
+                  <p style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>{activeRequest.description}</p>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Date Submitted</span>
+                  <span>{new Date(activeRequest.submittedAt).toLocaleString()}</span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Current Status</span>
+                  <span className={`badge ${activeRequest.status === 'resolved' ? 'badge-success' : activeRequest.status === 'in-progress' ? 'badge-pending' : 'badge-danger'}`} style={{ marginTop: '0.25rem', display: 'inline-block' }}>
+                    {activeRequest.status}
+                  </span>
+                </div>
               </div>
               
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveRequest(null)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={submittingRequestStatus}>
-                  {submittingRequestStatus ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
+              <form onSubmit={handleUpdateRequestStatus}>
+                <div className="form-group">
+                  <label className="form-label">New Status Classification <span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <select className="form-input" required value={requestStatus} onChange={(e) => setRequestStatus(e.target.value)}>
+                    <option value="">-- Select an Option --</option>
+                    <option value="submitted">Submitted (Awaiting Action)</option>
+                    <option value="in-progress">In-Progress (Team Dispatched)</option>
+                    <option value="resolved">Resolved (Completed)</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Timeline Comment / Update Details</label>
+                  <textarea className="form-input" style={{ minHeight: '80px' }} required placeholder="e.g. Maintenance crew dispatched to fix pothole." value={requestComment} onChange={(e) => setRequestComment(e.target.value)} />
+                </div>
+                
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setActiveRequest(null)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={submittingRequestStatus}>
+                    {submittingRequestStatus ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Permit Review Modal */}
-      {activePermit && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="card animated-fade" style={{ width: '450px', maxWidth: '90%' }}>
-            <h3 style={{ marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>Review Permit Application</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-              Reviewing: <strong>{activePermit.title}</strong> by {activePermit.citizenName}
-            </p>
-            <p style={{ fontSize: '0.85rem', backgroundColor: 'var(--bg-tertiary)', padding: '0.75rem', borderRadius: '4px', marginBottom: '1.25rem' }}>
-              {activePermit.description}
-            </p>
-
-            <form onSubmit={handleUpdatePermitStatus}>
-              <div className="form-group">
-                <label className="form-label">Decision Outcome</label>
-                <select className="form-input" value={permitStatus} onChange={(e) => setPermitStatus(e.target.value)}>
-                  <option value="approved">Approved (Issue License)</option>
-                  <option value="rejected">Rejected (Decline Application)</option>
-                  <option value="pending">Hold (Pending Updates)</option>
-                </select>
+      {activePermit && (() => {
+        const permitUser = users.find(u => u.username === activePermit.citizenName || u._id === activePermit.citizenId);
+        const permitUserEmail = permitUser ? permitUser.email : 'N/A';
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+            <div className="card animated-fade" style={{ width: '550px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+              <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-heading)' }}>Review Permit Application</h3>
+              
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '0.75rem',
+                backgroundColor: 'var(--bg-tertiary)',
+                padding: '1rem',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.85rem',
+                marginBottom: '1.25rem',
+                border: '1px solid var(--border-color)'
+              }}>
+                <div>
+                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Citizen Submitter</span>
+                  <strong>{activePermit.citizenName}</strong> {permitUserEmail !== 'N/A' && <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'block' }}>{permitUserEmail}</span>}
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Permit Category / Type</span>
+                  <strong>{activePermit.permitType}</strong>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Application Title</span>
+                  <strong style={{ fontSize: '0.9rem' }}>{activePermit.title}</strong>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Description & Specifications</span>
+                  <p style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>{activePermit.description}</p>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Date Submitted</span>
+                  <span>{new Date(activePermit.submittedAt).toLocaleString()}</span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Current Status</span>
+                  <span className={`badge ${activePermit.status === 'approved' ? 'badge-success' : activePermit.status === 'rejected' ? 'badge-danger' : 'badge-pending'}`} style={{ marginTop: '0.25rem', display: 'inline-block' }}>
+                    {activePermit.status}
+                  </span>
+                </div>
               </div>
-              <div className="form-group">
-                <label className="form-label">Decision Notes / Comments</label>
-                <textarea className="form-input" style={{ minHeight: '100px' }} required placeholder="State spatial arguments or approval conditions..." value={permitComment} onChange={(e) => setPermitComment(e.target.value)} />
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setActivePermit(null)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={submittingPermitStatus}>
-                  {submittingPermitStatus ? 'Submitting...' : 'Submit Decision'}
-                </button>
-              </div>
-            </form>
+              
+              <form onSubmit={handleUpdatePermitStatus}>
+                <div className="form-group">
+                  <label className="form-label">Decision Outcome <span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <select className="form-input" required value={permitStatus} onChange={(e) => setPermitStatus(e.target.value)}>
+                    <option value="">-- Select an Option --</option>
+                    <option value="approved">Approved (Issue License)</option>
+                    <option value="rejected">Rejected (Decline Application)</option>
+                    <option value="pending">Hold (Pending Updates)</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Decision Notes / Comments</label>
+                  <textarea className="form-input" style={{ minHeight: '80px' }} required placeholder="State spatial arguments or approval conditions..." value={permitComment} onChange={(e) => setPermitComment(e.target.value)} />
+                </div>
+                
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setActivePermit(null)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={submittingPermitStatus}>
+                    {submittingPermitStatus ? 'Submitting...' : 'Submit Decision'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
       {/* Add User Modal */}
       {showAddUserModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
@@ -1984,8 +2141,9 @@ const AdminDashboard = () => {
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Status</label>
-                <select className="form-input" value={editPermitStatus} onChange={(e) => setEditPermitStatus(e.target.value)}>
+                <label className="form-label">Status <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <select className="form-input" required value={editPermitStatus} onChange={(e) => setEditPermitStatus(e.target.value)}>
+                  <option value="">-- Select an Option --</option>
                   <option value="pending">Pending Review</option>
                   <option value="approved">Approved</option>
                   <option value="rejected">Rejected</option>
@@ -2070,63 +2228,95 @@ const AdminDashboard = () => {
       )}
 
       {/* Edit Booking Modal */}
-      {showEditBookingModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="card animated-fade" style={{ width: '450px', maxWidth: '90%' }}>
-            <h3 style={{ marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>Edit Event Booking</h3>
-            <form onSubmit={handleEditBooking}>
-              <div className="form-group">
-                <label className="form-label">Event / Purpose</label>
-                <input type="text" className="form-input" required value={editBookingTitle} onChange={(e) => setEditBookingTitle(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Venue Location</label>
-                <select className="form-input" value={editBookingVenue} onChange={(e) => setEditBookingVenue(e.target.value)}>
-                  <option value="Town Hall Center">Town Hall Center</option>
-                  <option value="Community Park Pavilion">Community Park Pavilion</option>
-                  <option value="Civic Center Auditorium">Civic Center Auditorium</option>
-                  <option value="Sports Complex Gym">Sports Complex Gym</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Reservation Date</label>
-                <input type="date" className="form-input" required value={editBookingDate} onChange={(e) => setEditBookingDate(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Time Slot</label>
-                <select className="form-input" value={editBookingTimeSlot} onChange={(e) => setEditBookingTimeSlot(e.target.value)}>
-                  <option value="09:00 - 12:00">Morning (09:00 - 12:00)</option>
-                  <option value="13:00 - 17:00">Afternoon (13:00 - 17:00)</option>
-                  <option value="18:00 - 22:00">Evening (18:00 - 22:00)</option>
-                  <option value="09:00 - 22:00">Full Day (09:00 - 22:00)</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Tickets Count / Expected Attendees</label>
-                <input type="number" className="form-input" required min="1" max="500" value={editBookingTickets} onChange={(e) => setEditBookingTickets(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Booking Status</label>
-                <select className="form-input" value={editBookingStatus} onChange={(e) => setEditBookingStatus(e.target.value)}>
-                  <option value="pending">Pending approval</option>
-                  <option value="approved">Approved</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Detailed Notes</label>
-                <textarea className="form-input" style={{ minHeight: '80px' }} value={editBookingDescription} onChange={(e) => setEditBookingDescription(e.target.value)} />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowEditBookingModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={submittingEditBooking}>
-                  {submittingEditBooking ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
+      {showEditBookingModal && (() => {
+        const bookingObj = bookings.find(x => x._id === editBookingId);
+        const bookingUser = bookingObj ? users.find(u => u.username === bookingObj.citizenName || u._id === bookingObj.citizenId) : null;
+        const bookingUserEmail = bookingUser ? bookingUser.email : 'N/A';
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+            <div className="card animated-fade" style={{ width: '550px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+              <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-heading)' }}>Edit Event Booking</h3>
+              
+              {bookingObj && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '0.75rem',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  padding: '1rem',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.85rem',
+                  marginBottom: '1.25rem',
+                  border: '1px solid var(--border-color)'
+                }}>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Citizen Submitter</span>
+                    <strong>{bookingObj.citizenName}</strong> {bookingUserEmail !== 'N/A' && <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'block' }}>{bookingUserEmail}</span>}
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Current Status</span>
+                    <span className={`badge ${bookingObj.status === 'approved' ? 'badge-success' : bookingObj.status === 'cancelled' ? 'badge-danger' : 'badge-pending'}`} style={{ marginTop: '0.25rem', display: 'inline-block' }}>
+                      {bookingObj.status}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleEditBooking}>
+                <div className="form-group">
+                  <label className="form-label">Event / Purpose</label>
+                  <input type="text" className="form-input" required value={editBookingTitle} onChange={(e) => setEditBookingTitle(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Venue Location</label>
+                  <select className="form-input" value={editBookingVenue} onChange={(e) => setEditBookingVenue(e.target.value)}>
+                    <option value="Town Hall Center">Town Hall Center</option>
+                    <option value="Community Park Pavilion">Community Park Pavilion</option>
+                    <option value="Civic Center Auditorium">Civic Center Auditorium</option>
+                    <option value="Sports Complex Gym">Sports Complex Gym</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Reservation Date</label>
+                  <input type="date" className="form-input" required value={editBookingDate} onChange={(e) => setEditBookingDate(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Time Slot</label>
+                  <select className="form-input" value={editBookingTimeSlot} onChange={(e) => setEditBookingTimeSlot(e.target.value)}>
+                    <option value="09:00 - 12:00">Morning (09:00 - 12:00)</option>
+                    <option value="13:00 - 17:00">Afternoon (13:00 - 17:00)</option>
+                    <option value="18:00 - 22:00">Evening (18:00 - 22:00)</option>
+                    <option value="09:00 - 22:00">Full Day (09:00 - 22:00)</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Tickets Count / Expected Attendees</label>
+                  <input type="number" className="form-input" required min="1" max="500" value={editBookingTickets} onChange={(e) => setEditBookingTickets(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Booking Status <span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <select className="form-input" required value={editBookingStatus} onChange={(e) => setEditBookingStatus(e.target.value)}>
+                    <option value="">-- Select an Option --</option>
+                    <option value="pending">Pending approval</option>
+                    <option value="approved">Approved</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Detailed Notes</label>
+                  <textarea className="form-input" style={{ minHeight: '80px' }} value={editBookingDescription} onChange={(e) => setEditBookingDescription(e.target.value)} />
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowEditBookingModal(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={submittingEditBooking}>
+                    {submittingEditBooking ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Add Tax Modal */}
       {showAddTaxModal && (
@@ -2156,8 +2346,9 @@ const AdminDashboard = () => {
                 <input type="number" className="form-input" required min="1" step="0.01" placeholder="e.g. 250.00" value={newTaxAmount} onChange={(e) => setNewTaxAmount(e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Initial Status</label>
-                <select className="form-input" value={newTaxStatus} onChange={(e) => setNewTaxStatus(e.target.value)}>
+                <label className="form-label">Initial Status <span style={{ color: 'var(--danger)' }}>*</span></label>
+                <select className="form-input" required value={newTaxStatus} onChange={(e) => setNewTaxStatus(e.target.value)}>
+                  <option value="">-- Select an Option --</option>
                   <option value="pending">Pending Payment</option>
                   <option value="paid">Pre-paid / Paid</option>
                 </select>
@@ -2178,45 +2369,77 @@ const AdminDashboard = () => {
       )}
 
       {/* Edit Tax Modal */}
-      {showEditTaxModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="card animated-fade" style={{ width: '450px', maxWidth: '90%' }}>
-            <h3 style={{ marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>Edit Tax Record</h3>
-            <form onSubmit={handleEditTax}>
-              <div className="form-group">
-                <label className="form-label">Tax / Levy Category</label>
-                <select className="form-input" value={editTaxType} onChange={(e) => setEditTaxType(e.target.value)}>
-                  <option value="Property Tax">Property Tax</option>
-                  <option value="Waste Levy">Waste Levy</option>
-                  <option value="Business Rate">Business Rate</option>
-                  <option value="Utilities Bill">Utilities Bill</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Billing Amount ($)</label>
-                <input type="number" className="form-input" required min="1" step="0.01" value={editTaxAmount} onChange={(e) => setEditTaxAmount(e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Payment Status</label>
-                <select className="form-input" value={editTaxStatus} onChange={(e) => setEditTaxStatus(e.target.value)}>
-                  <option value="pending">Pending Payment</option>
-                  <option value="paid">Paid</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Billing Date</label>
-                <input type="date" className="form-input" required value={editTaxBillingDate} onChange={(e) => setEditTaxBillingDate(e.target.value)} />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowEditTaxModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={submittingEditTax}>
-                  {submittingEditTax ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
+      {showEditTaxModal && (() => {
+        const taxObj = taxes.find(x => x._id === editTaxId);
+        const taxUser = taxObj ? users.find(u => u.username === taxObj.citizenName || u._id === taxObj.citizenId) : null;
+        const taxUserEmail = taxUser ? taxUser.email : 'N/A';
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+            <div className="card animated-fade" style={{ width: '550px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+              <h3 style={{ marginBottom: '1rem', fontFamily: 'var(--font-heading)' }}>Edit Tax Record</h3>
+              
+              {taxObj && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '0.75rem',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  padding: '1rem',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.85rem',
+                  marginBottom: '1.25rem',
+                  border: '1px solid var(--border-color)'
+                }}>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Citizen Submitter</span>
+                    <strong>{taxObj.citizenName}</strong> {taxUserEmail !== 'N/A' && <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'block' }}>{taxUserEmail}</span>}
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>Current Status</span>
+                    <span className={`badge ${taxObj.status === 'paid' ? 'badge-success' : 'badge-pending'}`} style={{ marginTop: '0.25rem', display: 'inline-block' }}>
+                      {taxObj.status}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleEditTax}>
+                <div className="form-group">
+                  <label className="form-label">Tax / Levy Category</label>
+                  <select className="form-input" value={editTaxType} onChange={(e) => setEditTaxType(e.target.value)}>
+                    <option value="Property Tax">Property Tax</option>
+                    <option value="Waste Levy">Waste Levy</option>
+                    <option value="Business Rate">Business Rate</option>
+                    <option value="Utilities Bill">Utilities Bill</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Billing Amount ($)</label>
+                  <input type="number" className="form-input" required min="1" step="0.01" value={editTaxAmount} onChange={(e) => setEditTaxAmount(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Payment Status <span style={{ color: 'var(--danger)' }}>*</span></label>
+                  <select className="form-input" required value={editTaxStatus} onChange={(e) => setEditTaxStatus(e.target.value)}>
+                    <option value="">-- Select an Option --</option>
+                    <option value="pending">Pending Payment</option>
+                    <option value="paid">Paid</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Billing Date</label>
+                  <input type="date" className="form-input" required value={editTaxBillingDate} onChange={(e) => setEditTaxBillingDate(e.target.value)} />
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowEditTaxModal(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={submittingEditTax}>
+                    {submittingEditTax ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Edit Announcement Modal */}
       {showEditAnnModal && (
@@ -2248,6 +2471,52 @@ const AdminDashboard = () => {
               <div className="form-group">
                 <label className="form-label">Announcement Content Text</label>
                 <textarea className="form-input" style={{ minHeight: '120px' }} required value={editAnnContent} onChange={(e) => setEditAnnContent(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Update Announcement Image (or keep current)</label>
+                <input 
+                  type="file" 
+                  id="edit-announce-image-input" 
+                  accept="image/*" 
+                  className="form-input" 
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setEditAnnImage(reader.result);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }} 
+                />
+                {editAnnImage ? (
+                  <div style={{ marginTop: '0.5rem', position: 'relative', display: 'inline-block' }}>
+                    <img src={editAnnImage} alt="Preview" style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: 'var(--radius-sm)' }} />
+                    <button 
+                      type="button" 
+                      className="btn btn-danger" 
+                      style={{ position: 'absolute', top: '5px', right: '5px', padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} 
+                      onClick={() => {
+                        setEditAnnImage('');
+                        document.getElementById('edit-announce-image-input').value = '';
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (() => {
+                  const currentAnn = announcements.find(x => x._id === editAnnId);
+                  if (currentAnn && currentAnn.imageUrl) {
+                    return (
+                      <div style={{ marginTop: '0.5rem' }}>
+                        <span style={{ fontSize: '0.75rem', display: 'block', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Current Image:</span>
+                        <img src={currentAnn.imageUrl.startsWith('/') ? `${API_BASE_URL.replace('/api', '')}${currentAnn.imageUrl}` : currentAnn.imageUrl} alt="Current" style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: 'var(--radius-sm)' }} />
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowEditAnnModal(false)}>Cancel</button>
