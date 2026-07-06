@@ -26,6 +26,8 @@ const Sidebar = ({ activeTab, setActiveTab, role }) => {
     { id: 'users', label: 'User Management', icon: Users },
     { id: 'requests', label: 'Service Requests', icon: Wrench },
     { id: 'permits', label: 'Permits Approval', icon: FileText },
+    { id: 'bookings', label: 'Event Bookings', icon: Calendar },
+    { id: 'taxes', label: 'Tax Billing', icon: Receipt },
     { id: 'gis', label: 'GIS Planning', icon: Map },
     { id: 'announcements', label: 'Announcements', icon: Megaphone }
   ];
@@ -53,7 +55,10 @@ const Sidebar = ({ activeTab, setActiveTab, role }) => {
           return (
             <li key={item.id}>
               <button
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  document.body.classList.remove('mobile-sidebar-open');
+                }}
                 style={{
                   width: '100%',
                   display: 'flex',

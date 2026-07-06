@@ -15,7 +15,20 @@ import {
   deleteRequest,
   getAllPermits,
   updatePermitStatus,
+  createPermitOnBehalf,
+  editPermit,
+  deletePermit,
+  getAllBookings,
+  createBookingOnBehalf,
+  updateBooking,
+  deleteBooking,
+  getAllTaxes,
+  createTaxBill,
+  editTaxBill,
+  deleteTaxBill,
   createAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncement,
   getGisZones,
   addGisPlot,
   exportRequestsCsv
@@ -48,9 +61,25 @@ router.delete('/requests/:id', deleteRequest);
 router.post('/requests/:id/update', updateServiceRequest);
 
 router.get('/permits', getAllPermits);
+router.post('/permits', createPermitOnBehalf);
+router.put('/permits/:id', editPermit);
+router.delete('/permits/:id', deletePermit);
 router.post('/permits/:id/status', updatePermitStatus);
 
+router.get('/bookings', getAllBookings);
+router.post('/bookings', createBookingOnBehalf);
+router.put('/bookings/:id', updateBooking);
+router.delete('/bookings/:id', deleteBooking);
+
+router.get('/taxes', getAllTaxes);
+router.post('/taxes', createTaxBill);
+router.put('/taxes/:id', editTaxBill);
+router.delete('/taxes/:id', deleteTaxBill);
+
 router.post('/announcements', createAnnouncement);
+router.put('/announcements/:id', updateAnnouncement);
+router.delete('/announcements/:id', deleteAnnouncement);
+
 router.post('/gis-zones', addGisPlot);
 
 router.get('/reports/csv', exportRequestsCsv);

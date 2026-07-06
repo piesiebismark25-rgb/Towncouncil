@@ -12,11 +12,13 @@ import {
   AlertTriangle,
   Megaphone,
   CheckCircle,
-  FileCheck
+  FileCheck,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 const CitizenDashboard = () => {
-  const { user, API_BASE_URL } = useAuth();
+  const { user, updateUser, API_BASE_URL } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
 
   // Backend state
@@ -39,8 +41,66 @@ const CitizenDashboard = () => {
   const [paymentModalTax, setPaymentModalTax] = useState(null);
   const [cardNumber, setCardNumber] = useState('');
 
+  // Tracking Timeline State
+  const [activeTimelineItem, setActiveTimelineItem] = useState(null);
+  const [timelineType, setTimelineType] = useState('');
+
+  const [submittingPermit, setSubmittingPermit] = useState(false);
+  const [submittingRequest, setSubmittingRequest] = useState(false);
+
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Profile edit states
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileUsername, setProfileUsername] = useState(user?.username || '');
+  const [profileEmail, setProfileEmail] = useState(user?.email || '');
+  const [profilePassword, setProfilePassword] = useState('');
+  const [showProfilePassword, setShowProfilePassword] = useState(false);
+  const [submittingProfile, setSubmittingProfile] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setProfileUsername(user.username);
+      setProfileEmail(user.email);
+    }
+  }, [user]);
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    setSubmittingProfile(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          username: profileUsername,
+          email: profileEmail,
+          password: profilePassword || undefined
+        })
+      });
+
+      const resData = await response.json();
+      if (response.ok && resData.status === 'success') {
+        updateUser(resData.data);
+        setSuccessMsg('Profile updated successfully.');
+        setIsEditingProfile(false);
+        setProfilePassword('');
+      } else {
+        setErrorMsg(resData.message || 'Error updating profile');
+      }
+    } catch (err) {
+      setErrorMsg('Network error updating profile.');
+    } finally {
+      setSubmittingProfile(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -79,36 +139,50 @@ const CitizenDashboard = () => {
     }
   };
 
-  const handlePayTax = async (e) => {
-    e.preventDefault();
-    if (!paymentModalTax) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/services/taxes/${paymentModalTax._id}/pay`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const resData = await response.json();
-      if (response.ok) {
-        showNotification('Tax payment processed successfully. Receipt generated.');
-        setPaymentModalTax(null);
-        setCardNumber('');
-        fetchData();
-      } else {
-        showNotification(resData.message || 'Payment processing failed.', 'error');
-      }
-    } catch (err) {
-      showNotification('Error processing payment.', 'error');
+  const initiatePaystackPayment = (tax) => {
+    if (!window.PaystackPop) {
+      showNotification('Payment gateway is currently loading. Please try again.', 'error');
+      return;
     }
+
+    const handler = window.PaystackPop.setup({
+      key: 'pk_test_cb91a4b60e680a6b7d159042b450702d7e2e8e0d', // Paystack Public Test Key
+      email: user.email || 'resident@towncouncil.gov',
+      amount: Math.round(tax.amount * 100), // in kobo/cents
+      currency: 'GHS', // or USD, NGN, etc. Let's use standard test currency
+      ref: 'TC-' + Date.now() + '-' + Math.floor(Math.random() * 10000),
+      callback: async function (response) {
+        try {
+          const token = localStorage.getItem('token');
+          const res = await fetch(`${API_BASE_URL}/services/taxes/${tax._id}/pay`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ reference: response.reference })
+          });
+          const resData = await res.json();
+          if (res.ok) {
+            showNotification(`Payment successful! Reference: ${response.reference}`);
+            fetchData();
+          } else {
+            showNotification(resData.message || 'Payment verification failed.', 'error');
+          }
+        } catch (err) {
+          showNotification('Error verifying payment.', 'error');
+        }
+      },
+      onClose: function () {
+        showNotification('Payment window closed.', 'error');
+      }
+    });
+    handler.openIframe();
   };
 
   const handleApplyPermit = async (e) => {
     e.preventDefault();
+    setSubmittingPermit(true);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/services/permits`, {
@@ -128,6 +202,8 @@ const CitizenDashboard = () => {
       }
     } catch (err) {
       showNotification('Error submitting permit.', 'error');
+    } finally {
+      setSubmittingPermit(false);
     }
   };
 
@@ -146,14 +222,23 @@ const CitizenDashboard = () => {
       if (response.ok) {
         showNotification('Event booked successfully.');
         fetchData();
+        return true;
+      } else {
+        const resData = await response.json();
+        showNotification(resData.message || 'Error booking event.', 'error');
+        throw new Error(resData.message || 'Error booking event.');
       }
     } catch (err) {
-      showNotification('Error booking event.', 'error');
+      if (!err.message || !err.message.includes('booking event')) {
+        showNotification('Error booking event.', 'error');
+      }
+      throw err;
     }
   };
 
   const handleCreateRequest = async (e) => {
     e.preventDefault();
+    setSubmittingRequest(true);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/services/requests`, {
@@ -173,6 +258,8 @@ const CitizenDashboard = () => {
       }
     } catch (err) {
       showNotification('Error submitting feedback.', 'error');
+    } finally {
+      setSubmittingRequest(false);
     }
   };
 
@@ -242,7 +329,7 @@ const CitizenDashboard = () => {
               </div>
 
               {/* Grid content */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem', marginTop: '2rem' }}>
+              <div className="dashboard-grid-2to1" style={{ marginTop: '2rem' }}>
                 {/* Announcements */}
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
@@ -337,13 +424,18 @@ const CitizenDashboard = () => {
                           </td>
                           <td style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{tax.receiptNumber || 'N/A'}</td>
                           <td>
-                            {tax.status === 'pending' ? (
-                              <button className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={() => setPaymentModalTax(tax)}>
-                                Pay Now
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              {tax.status === 'pending' ? (
+                                <button className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={() => initiatePaystackPayment(tax)}>
+                                  Pay Now
+                                </button>
+                              ) : (
+                                <span style={{ color: 'var(--success)', fontWeight: 600, fontSize: '0.85rem' }}>Paid ✓</span>
+                              )}
+                              <button className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={() => { setActiveTimelineItem(tax); setTimelineType('tax'); }}>
+                                Track
                               </button>
-                            ) : (
-                              <span style={{ color: 'var(--success)', fontWeight: 600, fontSize: '0.85rem' }}>Paid ✓</span>
-                            )}
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -358,7 +450,7 @@ const CitizenDashboard = () => {
           {/* TAB 3: PERMITS                           */}
           {/* ======================================== */}
           {activeTab === 'permits' && (
-            <div className="animated-fade" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+            <div className="animated-fade dashboard-grid-2col">
               <div>
                 <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
                   Permit Applications
@@ -387,8 +479,8 @@ const CitizenDashboard = () => {
                       <label className="form-label">Detailed Project Specifications</label>
                       <textarea className="form-input" style={{ minHeight: '100px' }} required placeholder="Briefly describe the layout, materials, dates, and locations related to this request." value={permitDesc} onChange={(e) => setPermitDesc(e.target.value)} />
                     </div>
-                    <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-                      Submit Permit Request
+                    <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={submittingPermit}>
+                      {submittingPermit ? 'Submitting...' : 'Submit Permit Request'}
                     </button>
                   </form>
                 </div>
@@ -411,15 +503,20 @@ const CitizenDashboard = () => {
                           </span>
                         </div>
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{permit.description}</p>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.75rem' }}>
-                          <span>Type: {permit.permitType}</span>
-                          <span>Submitted: {new Date(permit.submittedAt).toLocaleDateString()}</span>
-                        </div>
                         {permit.comments && (
-                          <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-tertiary)', borderLeft: '3px solid var(--border-focus)', fontSize: '0.8rem', borderRadius: '4px' }}>
+                          <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-tertiary)', borderLeft: '3px solid var(--border-focus)', fontSize: '0.8rem', borderRadius: '4px', marginBottom: '0.75rem' }}>
                             <strong>Council Response:</strong> {permit.comments}
                           </div>
                         )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', marginTop: '0.75rem' }}>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                            <span>Type: {permit.permitType} | </span>
+                            <span>Submitted: {new Date(permit.submittedAt).toLocaleDateString()}</span>
+                          </div>
+                          <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => { setActiveTimelineItem(permit); setTimelineType('permit'); }}>
+                            Track Status
+                          </button>
+                        </div>
                       </div>
                     ))
                   )}
@@ -440,6 +537,50 @@ const CitizenDashboard = () => {
                 Browse approved municipal events or register to book assembly rooms, pavilions, or recreation centers.
               </p>
               <CalendarView events={bookings} onBookEvent={handleBookEvent} />
+
+              <div style={{ marginTop: '3rem' }}>
+                <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>My Reservation Requests</h3>
+                <div className="table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Event/Purpose</th>
+                        <th>Venue</th>
+                        <th>Date & Time Slot</th>
+                        <th>Attendees</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bookings.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>No bookings submitted by you yet.</td>
+                        </tr>
+                      ) : (
+                        bookings.map(booking => (
+                          <tr key={booking._id}>
+                            <td style={{ fontWeight: 600 }}>{booking.title}</td>
+                            <td>{booking.venue}</td>
+                            <td>{booking.date} ({booking.timeSlot})</td>
+                            <td>{booking.ticketsCount}</td>
+                            <td>
+                              <span className={`badge ${booking.status === 'approved' ? 'badge-success' : booking.status === 'cancelled' ? 'badge-danger' : 'badge-pending'}`}>
+                                {booking.status}
+                              </span>
+                            </td>
+                            <td>
+                              <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => { setActiveTimelineItem(booking); setTimelineType('booking'); }}>
+                                Track Status
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
 
@@ -447,7 +588,7 @@ const CitizenDashboard = () => {
           {/* TAB 5: SERVICE REQUESTS                  */}
           {/* ======================================== */}
           {activeTab === 'requests' && (
-            <div className="animated-fade" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '2rem' }}>
+            <div className="animated-fade dashboard-grid-1to12">
               <div>
                 <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
                   Service Feedback & Requests
@@ -485,8 +626,8 @@ const CitizenDashboard = () => {
                       <label className="form-label">Specific Details / Location description</label>
                       <textarea className="form-input" style={{ minHeight: '100px' }} required placeholder="Please state full address details to help council workers locate the issue." value={requestDesc} onChange={(e) => setRequestDesc(e.target.value)} />
                     </div>
-                    <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-                      Submit Feedback
+                    <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={submittingRequest}>
+                      {submittingRequest ? 'Submitting...' : 'Submit Feedback'}
                     </button>
                   </form>
                 </div>
@@ -548,36 +689,107 @@ const CitizenDashboard = () => {
               <h2 style={{ fontSize: '1.75rem', marginBottom: '1.5rem', fontFamily: 'var(--font-heading)', textAlign: 'center' }}>
                 Citizen Profile Account
               </h2>
-              <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '2.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--accent-light)', color: 'var(--accent-color)', display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 800 }}>
-                    {user.username.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '1.25rem', fontFamily: 'var(--font-heading)' }}>{user.username}</h3>
-                    <p style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--accent-color)', fontWeight: 600, marginTop: '0.25rem', textTransform: 'uppercase' }}>
-                      Official Resident ID Verified
-                    </p>
-                  </div>
-                </div>
+              <div className="card" style={{ padding: '2.5rem' }}>
+                {isEditingProfile ? (
+                  <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>Edit Profile Details</h3>
+                    <div className="form-group">
+                      <label className="form-label">Username</label>
+                      <input 
+                        type="text" 
+                        className="form-input" 
+                        required 
+                        value={profileUsername} 
+                        onChange={(e) => setProfileUsername(e.target.value)} 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Email Address</label>
+                      <input 
+                        type="email" 
+                        className="form-input" 
+                        required 
+                        value={profileEmail} 
+                        onChange={(e) => setProfileEmail(e.target.value)} 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">New Password (leave blank to keep current)</label>
+                      <div style={{ position: 'relative' }}>
+                        <input 
+                          type={showProfilePassword ? "text" : "password"} 
+                          className="form-input" 
+                          placeholder="••••••••" 
+                          value={profilePassword} 
+                          onChange={(e) => setProfilePassword(e.target.value)} 
+                          style={{ paddingRight: '2.5rem' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowProfilePassword(!showProfilePassword)}
+                          style={{
+                            position: 'absolute',
+                            right: '10px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--text-secondary)',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                        >
+                          {showProfilePassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                      <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={submittingProfile}>
+                        {submittingProfile ? 'Saving...' : 'Save Changes'}
+                      </button>
+                      <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setIsEditingProfile(false)}>
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                      <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--accent-light)', color: 'var(--accent-color)', display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 800 }}>
+                        {user.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: '1.25rem', fontFamily: 'var(--font-heading)' }}>{user.username}</h3>
+                        <p style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--accent-color)', fontWeight: 600, marginTop: '0.25rem', textTransform: 'uppercase' }}>
+                          Official Resident ID Verified
+                        </p>
+                      </div>
+                    </div>
 
-                <hr style={{ border: 'none', borderBottom: '1px solid var(--border-color)' }} />
+                    <hr style={{ border: 'none', borderBottom: '1px solid var(--border-color)' }} />
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.9rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Resident Account Type</span>
-                    <span style={{ fontWeight: 600 }}>Citizen</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.9rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Resident Account Type</span>
+                        <span style={{ fontWeight: 600 }}>Citizen</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Digital Portal ID</span>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{user._id || user.id}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Profile Status</span>
+                        <span style={{ color: 'var(--success)', fontWeight: 600 }}>Active</span>
+                      </div>
+                    </div>
+                    
+                    <button className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} onClick={() => setIsEditingProfile(true)}>
+                      Edit Profile Details
+                    </button>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Digital Portal ID</span>
-                    <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{user._id || user.id}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Profile Status</span>
-                    <span style={{ color: 'var(--success)', fontWeight: 600 }}>Active</span>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           )}
@@ -624,6 +836,151 @@ const CitizenDashboard = () => {
                 <button type="submit" className="btn btn-primary">Process Checkout</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Dynamic Status Tracking Vertical Timeline Modal */}
+      {activeTimelineItem && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="card animated-fade" style={{ width: '500px', maxWidth: '90%', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+              <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', margin: 0 }}>
+                Status Tracking Timeline
+              </h3>
+              <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => { setActiveTimelineItem(null); setTimelineType(''); }}>
+                Close
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+              Tracking System Record: <strong>{activeTimelineItem.title || activeTimelineItem.taxType}</strong>
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative', paddingLeft: '1.5rem', borderLeft: '2px dashed var(--border-color)', marginLeft: '0.5rem' }}>
+              {/* PERMIT TIMELINE */}
+              {timelineType === 'permit' && (
+                <>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'absolute', left: '-2.15rem', top: '0.2rem', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: 'var(--success)' }}></div>
+                    <h4 style={{ fontSize: '0.9rem', margin: '0 0 0.25rem 0', fontWeight: 650 }}>Application Received</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      The permit request was logged in the municipal database on {new Date(activeTimelineItem.submittedAt).toLocaleDateString()} at {new Date(activeTimelineItem.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.
+                    </p>
+                  </div>
+
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ 
+                      position: 'absolute', 
+                      left: '-2.15rem', 
+                      top: '0.2rem', 
+                      width: '12px', 
+                      height: '12px', 
+                      borderRadius: '50%', 
+                      backgroundColor: activeTimelineItem.status !== 'pending' ? 'var(--success)' : 'var(--pending)' 
+                    }}></div>
+                    <h4 style={{ fontSize: '0.9rem', margin: '0 0 0.25rem 0', fontWeight: 650 }}>Zoning & Code Review</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      Municipal engineers review safety, zoning code adherence, and environment regulations. 
+                      Status: <strong style={{ color: activeTimelineItem.status !== 'pending' ? 'var(--success)' : 'var(--pending)' }}>{activeTimelineItem.status !== 'pending' ? 'Completed' : 'Under Review'}</strong>
+                    </p>
+                  </div>
+
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ 
+                      position: 'absolute', 
+                      left: '-2.15rem', 
+                      top: '0.2rem', 
+                      width: '12px', 
+                      height: '12px', 
+                      borderRadius: '50%', 
+                      backgroundColor: activeTimelineItem.status === 'approved' ? 'var(--success)' : activeTimelineItem.status === 'rejected' ? 'var(--danger)' : 'var(--border-color)' 
+                    }}></div>
+                    <h4 style={{ fontSize: '0.9rem', margin: '0 0 0.25rem 0', fontWeight: 650 }}>Final Council Board Decision</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      {activeTimelineItem.status === 'approved' ? (
+                        <span style={{ color: 'var(--success)', fontWeight: 600 }}>Approved: Permit issued for construction/trading operations.</span>
+                      ) : activeTimelineItem.status === 'rejected' ? (
+                        <span style={{ color: 'var(--danger)', fontWeight: 600 }}>Rejected: Application declined. Details: {activeTimelineItem.comments || 'No comment provided.'}</span>
+                      ) : (
+                        <span>Awaiting final Board signature and certification.</span>
+                      )}
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* BOOKING TIMELINE */}
+              {timelineType === 'booking' && (
+                <>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'absolute', left: '-2.15rem', top: '0.2rem', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: 'var(--success)' }}></div>
+                    <h4 style={{ fontSize: '0.9rem', margin: '0 0 0.25rem 0', fontWeight: 650 }}>Reservation Filed</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      Submitted request for venue <strong>{activeTimelineItem.venue}</strong> on {activeTimelineItem.date} ({activeTimelineItem.timeSlot}) for {activeTimelineItem.ticketsCount} estimated attendees.
+                    </p>
+                  </div>
+
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'absolute', left: '-2.15rem', top: '0.2rem', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: 'var(--success)' }}></div>
+                    <h4 style={{ fontSize: '0.9rem', margin: '0 0 0.25rem 0', fontWeight: 650 }}>Calendar Scheduling Validation</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      Automatic conflicts scan completed. Venue availability registered successfully.
+                    </p>
+                  </div>
+
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ 
+                      position: 'absolute', 
+                      left: '-2.15rem', 
+                      top: '0.2rem', 
+                      width: '12px', 
+                      height: '12px', 
+                      borderRadius: '50%', 
+                      backgroundColor: activeTimelineItem.status === 'approved' ? 'var(--success)' : activeTimelineItem.status === 'cancelled' ? 'var(--danger)' : 'var(--pending)' 
+                    }}></div>
+                    <h4 style={{ fontSize: '0.9rem', margin: '0 0 0.25rem 0', fontWeight: 650 }}>Reservation Approval Status</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      Current status: <strong style={{ textTransform: 'uppercase', color: activeTimelineItem.status === 'approved' ? 'var(--success)' : activeTimelineItem.status === 'cancelled' ? 'var(--danger)' : 'var(--pending)' }}>{activeTimelineItem.status}</strong>
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* TAX TIMELINE */}
+              {timelineType === 'tax' && (
+                <>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'absolute', left: '-2.15rem', top: '0.2rem', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: 'var(--success)' }}></div>
+                    <h4 style={{ fontSize: '0.9rem', margin: '0 0 0.25rem 0', fontWeight: 650 }}>Billing Invoice Generated</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      A new levy invoice of <strong>${activeTimelineItem.amount.toFixed(2)}</strong> was generated on {new Date(activeTimelineItem.billingDate).toLocaleDateString()}.
+                    </p>
+                  </div>
+
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ 
+                      position: 'absolute', 
+                      left: '-2.15rem', 
+                      top: '0.2rem', 
+                      width: '12px', 
+                      height: '12px', 
+                      borderRadius: '50%', 
+                      backgroundColor: activeTimelineItem.status === 'paid' ? 'var(--success)' : 'var(--pending)' 
+                    }}></div>
+                    <h4 style={{ fontSize: '0.9rem', margin: '0 0 0.25rem 0', fontWeight: 650 }}>Resident Settle State</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      {activeTimelineItem.status === 'paid' ? (
+                        <span style={{ color: 'var(--success)', fontWeight: 600 }}>
+                          Setted on {activeTimelineItem.paymentDate ? new Date(activeTimelineItem.paymentDate).toLocaleDateString() : 'recently'}. Receipt: #{activeTimelineItem.receiptNumber || 'N/A'}.
+                        </span>
+                      ) : (
+                        <span>Awaiting digital transaction checkout via standard debit/credit card.</span>
+                      )}
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

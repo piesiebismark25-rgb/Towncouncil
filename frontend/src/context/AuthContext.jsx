@@ -107,8 +107,12 @@ export const AuthProvider = ({ children }) => {
     setError(null);
   };
 
+  const updateUser = (newData) => {
+    setUser((prev) => (prev ? { ...prev, ...newData } : null));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, register, logout, API_BASE_URL }}>
+    <AuthContext.Provider value={{ user, loading, error, login, register, logout, updateUser, API_BASE_URL }}>
       {children}
     </AuthContext.Provider>
   );

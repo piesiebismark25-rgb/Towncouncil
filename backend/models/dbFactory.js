@@ -236,15 +236,11 @@ export const seedDatabase = async () => {
 
   if (useMongo()) {
     try {
-      const { User: MUser, Announcement: MAnnounce, TaxPayment: MTax } = getMongoModels();
+      const { User: MUser } = getMongoModels();
       const userCount = await MUser.countDocuments();
       if (userCount === 0) {
-        const users = await MUser.insertMany(seedUsers);
-        const citizenId = users[1]._id;
-
-        await MAnnounce.insertMany(getInitialAnnouncements());
-        await MTax.insertMany(getInitialTaxes(citizenId, 'John Doe'));
-        console.log('MongoDB Seeded successfully');
+        await MUser.insertMany(seedUsers);
+        console.log('MongoDB Seeded successfully with test users');
       }
     } catch (err) {
       console.error('Error seeding MongoDB:', err.message);
@@ -253,63 +249,10 @@ export const seedDatabase = async () => {
     // JSON Seeding
     const userList = await jsonModels.User.read();
     if (userList.length === 0) {
-      const adminUser = await jsonModels.User.create(seedUsers[0]);
-      const citizenUser = await jsonModels.User.create(seedUsers[1]);
-      
-      const citizenId = citizenUser._id;
-      
-      for (const announce of getInitialAnnouncements()) {
-        await jsonModels.Announcement.create(announce);
-      }
-      for (const tax of getInitialTaxes(citizenId, 'John Doe')) {
-        await jsonModels.TaxPayment.create(tax);
-      }
-      console.log('Local JSON Database Seeded successfully');
+      await jsonModels.User.create(seedUsers[0]);
+      await jsonModels.User.create(seedUsers[1]);
+      console.log('Local JSON Database Seeded successfully with test users');
     }
   }
 };
 
-const getInitialAnnouncements = () => [
-  {
-    title: 'Town Hall Meeting on City Budget',
-    content: 'Join the annual town hall meeting to discuss budget allocations for the 2026 fiscal year. Your input matters!',
-    type: 'event',
-    date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // in 2 days
-    targetAudience: 'all'
-  },
-  {
-    title: 'Road Maintenance Schedule',
-    content: 'Main Street road resurfacing will start next Monday. Expect temporary delays and alternate route detours.',
-    type: 'general',
-    date: new Date(),
-    targetAudience: 'all'
-  },
-  {
-    title: 'Urgent: Water Pipe Repair',
-    content: 'Emergency water maintenance on Maple Avenue. Services will be offline from 2 PM to 5 PM today.',
-    type: 'urgent',
-    date: new Date(),
-    targetAudience: 'all'
-  }
-];
-
-const getInitialTaxes = (citizenId, citizenName) => [
-  {
-    citizenId: citizenId.toString(),
-    citizenName,
-    amount: 350.00,
-    taxType: 'Property Tax (Q1 2026)',
-    status: 'pending',
-    billingDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)
-  },
-  {
-    citizenId: citizenId.toString(),
-    citizenName,
-    amount: 45.00,
-    taxType: 'Waste Disposal Fee',
-    status: 'paid',
-    billingDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    paymentDate: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000),
-    receiptNumber: 'REC-2026-9871A'
-  }
-];

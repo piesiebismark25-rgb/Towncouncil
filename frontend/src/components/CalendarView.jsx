@@ -10,6 +10,7 @@ const CalendarView = ({ events, onBookEvent }) => {
   const [timeSlot, setTimeSlot] = useState('09:00 - 12:00');
   const [venue, setVenue] = useState('Town Hall Center');
   const [tickets, setTickets] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -31,13 +32,20 @@ const CalendarView = ({ events, onBookEvent }) => {
     setShowForm(true);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title || !date) return;
-    onBookEvent({ title, description, date, timeSlot, venue, ticketsCount: Number(tickets) });
-    setTitle('');
-    setDescription('');
-    setShowForm(false);
+    setSubmitting(true);
+    try {
+      await onBookEvent({ title, description, date, timeSlot, venue, ticketsCount: Number(tickets) });
+      setTitle('');
+      setDescription('');
+      setShowForm(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Filter events for specific calendar cells
@@ -100,12 +108,29 @@ const CalendarView = ({ events, onBookEvent }) => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           <CalendarIcon style={{ color: 'var(--accent-color)' }} />
-          <h3 style={{ fontSize: '1.25rem', fontFamily: 'var(--font-heading)' }}>
-            {monthNames[month]} {year}
-          </h3>
+          <select 
+            value={month} 
+            onChange={(e) => setCurrentDate(new Date(year, parseInt(e.target.value), 1))}
+            className="form-input"
+            style={{ width: '130px', padding: '0.35rem 0.5rem', fontSize: '0.9rem', height: 'auto', border: '1px solid var(--border-color)', margin: 0 }}
+          >
+            {monthNames.map((name, index) => (
+              <option key={index} value={index}>{name}</option>
+            ))}
+          </select>
+          <select 
+            value={year} 
+            onChange={(e) => setCurrentDate(new Date(parseInt(e.target.value), month, 1))}
+            className="form-input"
+            style={{ width: '95px', padding: '0.35rem 0.5rem', fontSize: '0.9rem', height: 'auto', border: '1px solid var(--border-color)', margin: 0 }}
+          >
+            {[2025, 2026, 2027, 2028, 2029, 2030].map((yr) => (
+              <option key={yr} value={yr}>{yr}</option>
+            ))}
+          </select>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="btn btn-secondary" onClick={prevMonth} style={{ padding: '0.5rem' }}><ChevronLeft size={16} /></button>
@@ -171,7 +196,9 @@ const CalendarView = ({ events, onBookEvent }) => {
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Submit Booking</button>
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  {submitting ? 'Submitting...' : 'Submit Booking'}
+                </button>
               </div>
             </form>
           </div>

@@ -506,6 +506,295 @@ export const createAnnouncement = async (req, res) => {
   }
 };
 
+// @desc    Update announcement
+// @route   PUT /api/admin/announcements/:id
+// @access  Private/Admin
+export const updateAnnouncement = async (req, res) => {
+  try {
+    const { title, content, type, targetAudience } = req.body;
+    const ann = await Announcement.findById(req.params.id);
+    if (!ann) {
+      return res.status(404).json({ status: 'error', message: 'Announcement not found' });
+    }
+
+    const updated = await Announcement.findByIdAndUpdate(req.params.id, {
+      title: title || ann.title,
+      content: content || ann.content,
+      type: type || ann.type,
+      targetAudience: targetAudience || ann.targetAudience
+    }, { new: true });
+
+    res.status(200).json({ status: 'success', data: updated });
+  } catch (err) {
+    console.error('Update Announcement Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error updating announcement' });
+  }
+};
+
+// @desc    Delete announcement
+// @route   DELETE /api/admin/announcements/:id
+// @access  Private/Admin
+export const deleteAnnouncement = async (req, res) => {
+  try {
+    const deleted = await Announcement.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ status: 'error', message: 'Announcement not found' });
+    }
+    res.status(200).json({ status: 'success', message: 'Announcement deleted successfully' });
+  } catch (err) {
+    console.error('Delete Announcement Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error deleting announcement' });
+  }
+};
+
+// @desc    Create permit on behalf of citizen
+// @route   POST /api/admin/permits
+// @access  Private/Admin
+export const createPermitOnBehalf = async (req, res) => {
+  try {
+    const { citizenId, title, description, permitType, status, comments } = req.body;
+    if (!citizenId || !title || !description || !permitType) {
+      return res.status(400).json({ status: 'error', message: 'Missing required permit fields' });
+    }
+    const citizen = await User.findById(citizenId);
+    if (!citizen) {
+      return res.status(404).json({ status: 'error', message: 'Citizen not found' });
+    }
+
+    const newPermit = await PermitApplication.create({
+      citizenId,
+      citizenName: citizen.username,
+      title,
+      description,
+      permitType,
+      status: status || 'pending',
+      comments: comments || '',
+      submittedAt: new Date(),
+      updatedAt: new Date()
+    });
+    res.status(201).json({ status: 'success', data: newPermit });
+  } catch (err) {
+    console.error('Create Permit Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error creating permit application' });
+  }
+};
+
+// @desc    Edit permit application
+// @route   PUT /api/admin/permits/:id
+// @access  Private/Admin
+export const editPermit = async (req, res) => {
+  try {
+    const { title, description, permitType, status, comments } = req.body;
+    const permit = await PermitApplication.findById(req.params.id);
+    if (!permit) {
+      return res.status(404).json({ status: 'error', message: 'Permit application not found' });
+    }
+
+    const updated = await PermitApplication.findByIdAndUpdate(req.params.id, {
+      title: title || permit.title,
+      description: description || permit.description,
+      permitType: permitType || permit.permitType,
+      status: status || permit.status,
+      comments: comments !== undefined ? comments : permit.comments,
+      updatedAt: new Date()
+    }, { new: true });
+
+    res.status(200).json({ status: 'success', data: updated });
+  } catch (err) {
+    console.error('Edit Permit Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error updating permit application' });
+  }
+};
+
+// @desc    Delete permit application
+// @route   DELETE /api/admin/permits/:id
+// @access  Private/Admin
+export const deletePermit = async (req, res) => {
+  try {
+    const deleted = await PermitApplication.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ status: 'error', message: 'Permit application not found' });
+    }
+    res.status(200).json({ status: 'success', message: 'Permit application deleted successfully' });
+  } catch (err) {
+    console.error('Delete Permit Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error deleting permit application' });
+  }
+};
+
+// @desc    Get all bookings
+// @route   GET /api/admin/bookings
+// @access  Private/Admin
+export const getAllBookings = async (req, res) => {
+  try {
+    const bookings = await EventBooking.find({});
+    res.status(200).json({ status: 'success', data: bookings });
+  } catch (err) {
+    console.error('Fetch Bookings Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error fetching event bookings' });
+  }
+};
+
+// @desc    Create event booking on behalf of citizen
+// @route   POST /api/admin/bookings
+// @access  Private/Admin
+export const createBookingOnBehalf = async (req, res) => {
+  try {
+    const { citizenId, title, description, date, timeSlot, venue, status, ticketsCount } = req.body;
+    if (!citizenId || !title || !date || !timeSlot || !venue) {
+      return res.status(400).json({ status: 'error', message: 'Missing required booking fields' });
+    }
+    const citizen = await User.findById(citizenId);
+    if (!citizen) {
+      return res.status(404).json({ status: 'error', message: 'Citizen not found' });
+    }
+
+    const newBooking = await EventBooking.create({
+      citizenId,
+      citizenName: citizen.username,
+      title,
+      description: description || '',
+      date,
+      timeSlot,
+      venue,
+      status: status || 'pending',
+      ticketsCount: Number(ticketsCount) || 1,
+      createdAt: new Date()
+    });
+    res.status(201).json({ status: 'success', data: newBooking });
+  } catch (err) {
+    console.error('Create Booking Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error creating event booking' });
+  }
+};
+
+// @desc    Update event booking details/status
+// @route   PUT /api/admin/bookings/:id
+// @access  Private/Admin
+export const updateBooking = async (req, res) => {
+  try {
+    const { title, description, date, timeSlot, venue, status, ticketsCount } = req.body;
+    const booking = await EventBooking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ status: 'error', message: 'Event booking not found' });
+    }
+
+    const updated = await EventBooking.findByIdAndUpdate(req.params.id, {
+      title: title || booking.title,
+      description: description !== undefined ? description : booking.description,
+      date: date || booking.date,
+      timeSlot: timeSlot || booking.timeSlot,
+      venue: venue || booking.venue,
+      status: status || booking.status,
+      ticketsCount: ticketsCount !== undefined ? Number(ticketsCount) : booking.ticketsCount
+    }, { new: true });
+
+    res.status(200).json({ status: 'success', data: updated });
+  } catch (err) {
+    console.error('Update Booking Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error updating event booking' });
+  }
+};
+
+// @desc    Delete event booking
+// @route   DELETE /api/admin/bookings/:id
+// @access  Private/Admin
+export const deleteBooking = async (req, res) => {
+  try {
+    const deleted = await EventBooking.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ status: 'error', message: 'Event booking not found' });
+    }
+    res.status(200).json({ status: 'success', message: 'Event booking deleted successfully' });
+  } catch (err) {
+    console.error('Delete Booking Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error deleting event booking' });
+  }
+};
+
+// @desc    Get all taxes
+// @route   GET /api/admin/taxes
+// @access  Private/Admin
+export const getAllTaxes = async (req, res) => {
+  try {
+    const taxes = await TaxPayment.find({});
+    res.status(200).json({ status: 'success', data: taxes });
+  } catch (err) {
+    console.error('Fetch Taxes Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error fetching tax records' });
+  }
+};
+
+// @desc    Create tax bill for a citizen
+// @route   POST /api/admin/taxes
+// @access  Private/Admin
+export const createTaxBill = async (req, res) => {
+  try {
+    const { citizenId, amount, taxType, status, billingDate } = req.body;
+    if (!citizenId || !amount || !taxType) {
+      return res.status(400).json({ status: 'error', message: 'Missing required tax fields' });
+    }
+    const citizen = await User.findById(citizenId);
+    if (!citizen) {
+      return res.status(404).json({ status: 'error', message: 'Citizen not found' });
+    }
+
+    const newTax = await TaxPayment.create({
+      citizenId,
+      citizenName: citizen.username,
+      amount: Number(amount),
+      taxType,
+      status: status || 'pending',
+      billingDate: billingDate || new Date()
+    });
+    res.status(201).json({ status: 'success', data: newTax });
+  } catch (err) {
+    console.error('Create Tax Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error creating tax bill' });
+  }
+};
+
+// @desc    Edit tax bill details
+// @route   PUT /api/admin/taxes/:id
+// @access  Private/Admin
+export const editTaxBill = async (req, res) => {
+  try {
+    const { amount, taxType, status, billingDate } = req.body;
+    const tax = await TaxPayment.findById(req.params.id);
+    if (!tax) {
+      return res.status(404).json({ status: 'error', message: 'Tax record not found' });
+    }
+
+    const updated = await TaxPayment.findByIdAndUpdate(req.params.id, {
+      amount: amount !== undefined ? Number(amount) : tax.amount,
+      taxType: taxType || tax.taxType,
+      status: status || tax.status,
+      billingDate: billingDate || tax.billingDate
+    }, { new: true });
+
+    res.status(200).json({ status: 'success', data: updated });
+  } catch (err) {
+    console.error('Edit Tax Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error updating tax record' });
+  }
+};
+
+// @desc    Delete tax bill
+// @route   DELETE /api/admin/taxes/:id
+// @access  Private/Admin
+export const deleteTaxBill = async (req, res) => {
+  try {
+    const deleted = await TaxPayment.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ status: 'error', message: 'Tax record not found' });
+    }
+    res.status(200).json({ status: 'success', message: 'Tax record deleted successfully' });
+  } catch (err) {
+    console.error('Delete Tax Error:', err.message);
+    res.status(500).json({ status: 'error', message: 'Error deleting tax record' });
+  }
+};
+
 // ==========================================
 // 6. GIS Zones Data
 // ==========================================
@@ -521,10 +810,10 @@ const loadGisData = () => {
   }
   if (!fs.existsSync(filePath)) {
     const defaultGis = [
-      { id: 'zone-1', name: 'Residential Zone A', color: 'rgba(52, 211, 153, 0.4)', type: 'residential', plots: [{ x: 50, y: 50, w: 80, h: 60, status: 'allocated', owner: 'Jane Doe' }] },
-      { id: 'zone-2', name: 'Commercial Zone B', color: 'rgba(96, 165, 250, 0.4)', type: 'commercial', plots: [{ x: 180, y: 50, w: 100, h: 80, status: 'available', owner: '' }] },
-      { id: 'zone-3', name: 'Industrial Zone C', color: 'rgba(251, 191, 36, 0.4)', type: 'industrial', plots: [{ x: 50, y: 180, w: 120, h: 90, status: 'allocated', owner: 'BuildCorp Inc.' }] },
-      { id: 'zone-4', name: 'Green Space & Recreation', color: 'rgba(74, 222, 128, 0.6)', type: 'recreation', plots: [{ x: 220, y: 180, w: 80, h: 80, status: 'reserved', owner: 'Town Council' }] }
+      { id: 'zone-1', name: 'Residential Zone A', color: 'rgba(52, 211, 153, 0.4)', type: 'residential', plots: [] },
+      { id: 'zone-2', name: 'Commercial Zone B', color: 'rgba(96, 165, 250, 0.4)', type: 'commercial', plots: [] },
+      { id: 'zone-3', name: 'Industrial Zone C', color: 'rgba(251, 191, 36, 0.4)', type: 'industrial', plots: [] },
+      { id: 'zone-4', name: 'Green Space & Recreation', color: 'rgba(74, 222, 128, 0.6)', type: 'recreation', plots: [] }
     ];
     fs.writeFileSync(filePath, JSON.stringify(defaultGis, null, 2));
     return defaultGis;

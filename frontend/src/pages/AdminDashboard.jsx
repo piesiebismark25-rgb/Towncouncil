@@ -17,7 +17,10 @@ import {
   CheckCircle,
   XCircle,
   HelpCircle,
-  Activity
+  Activity,
+  Calendar,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -29,6 +32,9 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [requests, setRequests] = useState([]);
   const [permits, setPermits] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [taxes, setTaxes] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
 
   // Form inputs
   const [annTitle, setAnnTitle] = useState('');
@@ -67,23 +73,47 @@ const AdminDashboard = () => {
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState('citizen');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
+
+  // Submitting States
+  const [submittingRequestStatus, setSubmittingRequestStatus] = useState(false);
+  const [submittingPermitStatus, setSubmittingPermitStatus] = useState(false);
+  const [submittingAnnouncement, setSubmittingAnnouncement] = useState(false);
+  const [submittingCreateUser, setSubmittingCreateUser] = useState(false);
+  const [submittingEditUser, setSubmittingEditUser] = useState(false);
+  const [submittingCreateBooking, setSubmittingCreateBooking] = useState(false);
+  const [submittingEditBooking, setSubmittingEditBooking] = useState(false);
+  const [submittingCreateTax, setSubmittingCreateTax] = useState(false);
+  const [submittingEditTax, setSubmittingEditTax] = useState(false);
+  const [submittingEditAnn, setSubmittingEditAnn] = useState(false);
+  const [submittingCreateRequest, setSubmittingCreateRequest] = useState(false);
+  const [submittingEditRequest, setSubmittingEditRequest] = useState(false);
+  const [submittingCreatePermit, setSubmittingCreatePermit] = useState(false);
+  const [submittingEditPermit, setSubmittingEditPermit] = useState(false);
 
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
 
-      const [resAnal, resUsers, resReq, resPermits] = await Promise.all([
+      const [resAnal, resUsers, resReq, resPermits, resBookings, resTaxes, resAnnouncements] = await Promise.all([
         fetch(`${API_BASE_URL}/admin/analytics`, { headers }),
         fetch(`${API_BASE_URL}/admin/users`, { headers }),
         fetch(`${API_BASE_URL}/admin/requests`, { headers }),
-        fetch(`${API_BASE_URL}/admin/permits`, { headers })
+        fetch(`${API_BASE_URL}/admin/permits`, { headers }),
+        fetch(`${API_BASE_URL}/admin/bookings`, { headers }),
+        fetch(`${API_BASE_URL}/admin/taxes`, { headers }),
+        fetch(`${API_BASE_URL}/services/announcements`, { headers })
       ]);
 
       if (resAnal.ok) setAnalytics((await resAnal.json()).data);
       if (resUsers.ok) setUsers((await resUsers.json()).data);
       if (resReq.ok) setRequests((await resReq.json()).data);
       if (resPermits.ok) setPermits((await resPermits.json()).data);
+      if (resBookings.ok) setBookings((await resBookings.json()).data);
+      if (resTaxes.ok) setTaxes((await resTaxes.json()).data);
+      if (resAnnouncements.ok) setAnnouncements((await resAnnouncements.json()).data);
     } catch (err) {
       console.error('Error fetching admin data:', err);
     }
@@ -128,7 +158,7 @@ const AdminDashboard = () => {
   const handleUpdateRequestStatus = async (e) => {
     e.preventDefault();
     if (!activeRequest) return;
-
+    setSubmittingRequestStatus(true);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/admin/requests/${activeRequest._id}/update`, {
@@ -148,13 +178,15 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       showNotification('Error updating request.', 'error');
+    } finally {
+      setSubmittingRequestStatus(false);
     }
   };
 
   const handleUpdatePermitStatus = async (e) => {
     e.preventDefault();
     if (!activePermit) return;
-
+    setSubmittingPermitStatus(true);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/admin/permits/${activePermit._id}/status`, {
@@ -174,11 +206,14 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       showNotification('Error processing permit status.', 'error');
+    } finally {
+      setSubmittingPermitStatus(false);
     }
   };
 
   const handlePostAnnouncement = async (e) => {
     e.preventDefault();
+    setSubmittingAnnouncement(true);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/admin/announcements`, {
@@ -198,6 +233,8 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       showNotification('Error submitting announcement.', 'error');
+    } finally {
+      setSubmittingAnnouncement(false);
     }
   };
 
@@ -208,6 +245,7 @@ const AdminDashboard = () => {
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
+    setSubmittingCreateUser(true);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/admin/users`, {
@@ -238,11 +276,14 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       showNotification('Error creating user.', 'error');
+    } finally {
+      setSubmittingCreateUser(false);
     }
   };
 
   const handleEditUser = async (e) => {
     e.preventDefault();
+    setSubmittingEditUser(true);
     try {
       const token = localStorage.getItem('token');
       const body = {
@@ -273,6 +314,8 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       showNotification('Error updating user.', 'error');
+    } finally {
+      setSubmittingEditUser(false);
     }
   };
 
@@ -317,6 +360,501 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       showNotification('Error fetching user details.', 'error');
+    }
+  };
+
+  // Service Request CRUD Handlers
+  const [showAddRequestModal, setShowAddRequestModal] = useState(false);
+  const [showEditRequestModal, setShowEditRequestModal] = useState(false);
+  const [newRequestCitizenId, setNewRequestCitizenId] = useState('');
+  const [newRequestTitle, setNewRequestTitle] = useState('');
+  const [newRequestDescription, setNewRequestDescription] = useState('');
+  const [newRequestCategory, setNewRequestCategory] = useState('Maintenance');
+  const [newRequestPriority, setNewRequestPriority] = useState('medium');
+  const [editRequestId, setEditRequestId] = useState('');
+  const [editRequestTitle, setEditRequestTitle] = useState('');
+  const [editRequestDescription, setEditRequestDescription] = useState('');
+  const [editRequestCategory, setEditRequestCategory] = useState('Maintenance');
+  const [editRequestPriority, setEditRequestPriority] = useState('medium');
+
+  const handleCreateRequest = async (e) => {
+    e.preventDefault();
+    if (!newRequestCitizenId) {
+      showNotification('Please select a citizen.', 'error');
+      return;
+    }
+    setSubmittingCreateRequest(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/requests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          citizenId: newRequestCitizenId,
+          title: newRequestTitle,
+          description: newRequestDescription,
+          category: newRequestCategory,
+          priority: newRequestPriority
+        })
+      });
+      if (response.ok) {
+        showNotification('Service request logged successfully.');
+        setShowAddRequestModal(false);
+        setNewRequestTitle('');
+        setNewRequestDescription('');
+        fetchData();
+      } else {
+        const resData = await response.json();
+        showNotification(resData.message || 'Error logging request', 'error');
+      }
+    } catch (err) {
+      showNotification('Error logging request.', 'error');
+    } finally {
+      setSubmittingCreateRequest(false);
+    }
+  };
+
+  const handleEditRequest = async (e) => {
+    e.preventDefault();
+    setSubmittingEditRequest(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/requests/${editRequestId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: editRequestTitle,
+          description: editRequestDescription,
+          category: editRequestCategory,
+          priority: editRequestPriority
+        })
+      });
+      if (response.ok) {
+        showNotification('Service request updated successfully.');
+        setShowEditRequestModal(false);
+        fetchData();
+      } else {
+        const resData = await response.json();
+        showNotification(resData.message || 'Error updating request', 'error');
+      }
+    } catch (err) {
+      showNotification('Error updating request.', 'error');
+    } finally {
+      setSubmittingEditRequest(false);
+    }
+  };
+
+  const handleDeleteRequest = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this service request?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/requests/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        showNotification('Service request deleted successfully.');
+        fetchData();
+      } else {
+        showNotification('Error deleting request.', 'error');
+      }
+    } catch (err) {
+      showNotification('Error deleting request.', 'error');
+    }
+  };
+
+  // Permits CRUD Handlers
+  const [showAddPermitModal, setShowAddPermitModal] = useState(false);
+  const [showEditPermitModal, setShowEditPermitModal] = useState(false);
+  const [newPermitCitizenId, setNewPermitCitizenId] = useState('');
+  const [newPermitTitle, setNewPermitTitle] = useState('');
+  const [newPermitDescription, setNewPermitDescription] = useState('');
+  const [newPermitType, setNewPermitType] = useState('Building Permit');
+  const [editPermitId, setEditPermitId] = useState('');
+  const [editPermitTitle, setEditPermitTitle] = useState('');
+  const [editPermitDescription, setEditPermitDescription] = useState('');
+  const [editPermitType, setEditPermitType] = useState('Building Permit');
+  const [editPermitStatus, setEditPermitStatus] = useState('pending');
+  const [editPermitComments, setEditPermitComments] = useState('');
+
+  const handleCreatePermit = async (e) => {
+    e.preventDefault();
+    if (!newPermitCitizenId) {
+      showNotification('Please select a citizen.', 'error');
+      return;
+    }
+    setSubmittingCreatePermit(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/permits`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          citizenId: newPermitCitizenId,
+          title: newPermitTitle,
+          description: newPermitDescription,
+          permitType: newPermitType
+        })
+      });
+      if (response.ok) {
+        showNotification('Permit application created successfully.');
+        setShowAddPermitModal(false);
+        setNewPermitTitle('');
+        setNewPermitDescription('');
+        fetchData();
+      } else {
+        const resData = await response.json();
+        showNotification(resData.message || 'Error creating permit', 'error');
+      }
+    } catch (err) {
+      showNotification('Error creating permit.', 'error');
+    } finally {
+      setSubmittingCreatePermit(false);
+    }
+  };
+
+  const handleEditPermit = async (e) => {
+    e.preventDefault();
+    setSubmittingEditPermit(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/permits/${editPermitId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: editPermitTitle,
+          description: editPermitDescription,
+          permitType: editPermitType,
+          status: editPermitStatus,
+          comments: editPermitComments
+        })
+      });
+      if (response.ok) {
+        showNotification('Permit application updated successfully.');
+        setShowEditPermitModal(false);
+        fetchData();
+      } else {
+        const resData = await response.json();
+        showNotification(resData.message || 'Error updating permit', 'error');
+      }
+    } catch (err) {
+      showNotification('Error updating permit.', 'error');
+    } finally {
+      setSubmittingEditPermit(false);
+    }
+  };
+
+  const handleDeletePermit = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this permit application?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/permits/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        showNotification('Permit application deleted successfully.');
+        fetchData();
+      } else {
+        showNotification('Error deleting permit.', 'error');
+      }
+    } catch (err) {
+      showNotification('Error deleting permit.', 'error');
+    }
+  };
+
+  // Event Bookings CRUD Handlers
+  const [showAddBookingModal, setShowAddBookingModal] = useState(false);
+  const [showEditBookingModal, setShowEditBookingModal] = useState(false);
+  const [newBookingCitizenId, setNewBookingCitizenId] = useState('');
+  const [newBookingTitle, setNewBookingTitle] = useState('');
+  const [newBookingDescription, setNewBookingDescription] = useState('');
+  const [newBookingDate, setNewBookingDate] = useState('');
+  const [newBookingTimeSlot, setNewBookingTimeSlot] = useState('09:00 - 12:00');
+  const [newBookingVenue, setNewBookingVenue] = useState('Town Hall Center');
+  const [newBookingTickets, setNewBookingTickets] = useState(1);
+  const [editBookingId, setEditBookingId] = useState('');
+  const [editBookingTitle, setEditBookingTitle] = useState('');
+  const [editBookingDescription, setEditBookingDescription] = useState('');
+  const [editBookingDate, setEditBookingDate] = useState('');
+  const [editBookingTimeSlot, setEditBookingTimeSlot] = useState('09:00 - 12:00');
+  const [editBookingVenue, setEditBookingVenue] = useState('Town Hall Center');
+  const [editBookingStatus, setEditBookingStatus] = useState('pending');
+  const [editBookingTickets, setEditBookingTickets] = useState(1);
+
+  const handleCreateBooking = async (e) => {
+    e.preventDefault();
+    if (!newBookingCitizenId) {
+      showNotification('Please select a citizen.', 'error');
+      return;
+    }
+    setSubmittingCreateBooking(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          citizenId: newBookingCitizenId,
+          title: newBookingTitle,
+          description: newBookingDescription,
+          date: newBookingDate,
+          timeSlot: newBookingTimeSlot,
+          venue: newBookingVenue,
+          ticketsCount: Number(newBookingTickets)
+        })
+      });
+      if (response.ok) {
+        showNotification('Event booking logged successfully.');
+        setShowAddBookingModal(false);
+        setNewBookingTitle('');
+        setNewBookingDescription('');
+        setNewBookingDate('');
+        fetchData();
+      } else {
+        const resData = await response.json();
+        showNotification(resData.message || 'Error booking event', 'error');
+      }
+    } catch (err) {
+      showNotification('Error booking event.', 'error');
+    } finally {
+      setSubmittingCreateBooking(false);
+    }
+  };
+
+  const handleEditBooking = async (e) => {
+    e.preventDefault();
+    setSubmittingEditBooking(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/bookings/${editBookingId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: editBookingTitle,
+          description: editBookingDescription,
+          date: editBookingDate,
+          timeSlot: editBookingTimeSlot,
+          venue: editBookingVenue,
+          status: editBookingStatus,
+          ticketsCount: Number(editBookingTickets)
+        })
+      });
+      if (response.ok) {
+        showNotification('Event booking updated successfully.');
+        setShowEditBookingModal(false);
+        fetchData();
+      } else {
+        const resData = await response.json();
+        showNotification(resData.message || 'Error updating booking', 'error');
+      }
+    } catch (err) {
+      showNotification('Error updating booking.', 'error');
+    } finally {
+      setSubmittingEditBooking(false);
+    }
+  };
+
+  const handleDeleteBooking = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this event booking?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/bookings/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        showNotification('Event booking deleted successfully.');
+        fetchData();
+      } else {
+        showNotification('Error deleting booking.', 'error');
+      }
+    } catch (err) {
+      showNotification('Error deleting booking.', 'error');
+    }
+  };
+
+  // Tax Billing CRUD Handlers
+  const [showAddTaxModal, setShowAddTaxModal] = useState(false);
+  const [showEditTaxModal, setShowEditTaxModal] = useState(false);
+  const [newTaxCitizenId, setNewTaxCitizenId] = useState('');
+  const [newTaxAmount, setNewTaxAmount] = useState('');
+  const [newTaxType, setNewTaxType] = useState('Property Tax');
+  const [newTaxStatus, setNewTaxStatus] = useState('pending');
+  const [newTaxBillingDate, setNewTaxBillingDate] = useState('');
+  const [editTaxId, setEditTaxId] = useState('');
+  const [editTaxAmount, setEditTaxAmount] = useState('');
+  const [editTaxType, setEditTaxType] = useState('Property Tax');
+  const [editTaxStatus, setEditTaxStatus] = useState('pending');
+  const [editTaxBillingDate, setEditTaxBillingDate] = useState('');
+
+  const handleCreateTax = async (e) => {
+    e.preventDefault();
+    if (!newTaxCitizenId) {
+      showNotification('Please select a citizen.', 'error');
+      return;
+    }
+    setSubmittingCreateTax(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/taxes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          citizenId: newTaxCitizenId,
+          amount: Number(newTaxAmount),
+          taxType: newTaxType,
+          status: newTaxStatus,
+          billingDate: newTaxBillingDate || undefined
+        })
+      });
+      if (response.ok) {
+        showNotification('Tax bill created successfully.');
+        setShowAddTaxModal(false);
+        setNewTaxAmount('');
+        setNewTaxBillingDate('');
+        fetchData();
+      } else {
+        const resData = await response.json();
+        showNotification(resData.message || 'Error billing resident', 'error');
+      }
+    } catch (err) {
+      showNotification('Error billing resident.', 'error');
+    } finally {
+      setSubmittingCreateTax(false);
+    }
+  };
+
+  const handleEditTax = async (e) => {
+    e.preventDefault();
+    setSubmittingEditTax(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/taxes/${editTaxId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: Number(editTaxAmount),
+          taxType: editTaxType,
+          status: editTaxStatus,
+          billingDate: editTaxBillingDate
+        })
+      });
+      if (response.ok) {
+        showNotification('Tax record updated successfully.');
+        setShowEditTaxModal(false);
+        fetchData();
+      } else {
+        const resData = await response.json();
+        showNotification(resData.message || 'Error updating tax record', 'error');
+      }
+    } catch (err) {
+      showNotification('Error updating tax record.', 'error');
+    } finally {
+      setSubmittingEditTax(false);
+    }
+  };
+
+  const handleDeleteTax = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this tax bill?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/taxes/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        showNotification('Tax record deleted successfully.');
+        fetchData();
+      } else {
+        showNotification('Error deleting tax record.', 'error');
+      }
+    } catch (err) {
+      showNotification('Error deleting tax record.', 'error');
+    }
+  };
+
+  // Announcements CRUD Handlers
+  const [showEditAnnModal, setShowEditAnnModal] = useState(false);
+  const [editAnnId, setEditAnnId] = useState('');
+  const [editAnnTitle, setEditAnnTitle] = useState('');
+  const [editAnnContent, setEditAnnContent] = useState('');
+  const [editAnnType, setEditAnnType] = useState('general');
+  const [editAnnAudience, setEditAnnAudience] = useState('all');
+
+  const handleEditAnnouncement = async (e) => {
+    e.preventDefault();
+    setSubmittingEditAnn(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/announcements/${editAnnId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: editAnnTitle,
+          content: editAnnContent,
+          type: editAnnType,
+          targetAudience: editAnnAudience
+        })
+      });
+      if (response.ok) {
+        showNotification('Announcement updated successfully.');
+        setShowEditAnnModal(false);
+        fetchData();
+      } else {
+        const resData = await response.json();
+        showNotification(resData.message || 'Error updating announcement', 'error');
+      }
+    } catch (err) {
+      showNotification('Error updating announcement.', 'error');
+    } finally {
+      setSubmittingEditAnn(false);
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this announcement?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/admin/announcements/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        showNotification('Announcement deleted successfully.');
+        fetchData();
+      } else {
+        showNotification('Error deleting announcement.', 'error');
+      }
+    } catch (err) {
+      showNotification('Error deleting announcement.', 'error');
     }
   };
 
@@ -416,7 +954,7 @@ const AdminDashboard = () => {
               </div>
 
               {/* Recharts Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2rem', marginTop: '2.5rem' }}>
+              <div className="dashboard-grid-12to1" style={{ marginTop: '2.5rem' }}>
                 <div className="card" style={{ padding: '1.5rem', minHeight: '350px' }}>
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '1.5rem', fontFamily: 'var(--font-heading)' }}>Service Requests by Category</h3>
                   <div style={{ width: '100%', height: '280px' }}>
@@ -544,12 +1082,22 @@ const AdminDashboard = () => {
           {/* ======================================== */}
           {activeTab === 'requests' && (
             <div className="animated-fade">
-              <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
-                Municipal Service Inquiries & Feedback
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-                Review, allocate maintenance teams, and add timeline comments to citizen utility reports.
-              </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
+                    Municipal Service Inquiries & Feedback
+                  </h2>
+                  <p style={{ color: 'var(--text-secondary)' }}>
+                    Review, allocate maintenance teams, and add timeline comments to citizen utility reports.
+                  </p>
+                </div>
+                <button className="btn btn-primary" onClick={() => {
+                  setNewRequestCitizenId(users.filter(u => u.role === 'citizen')[0]?._id || '');
+                  setShowAddRequestModal(true);
+                }}>
+                  Log Request on Behalf
+                </button>
+              </div>
 
               <div className="table-container">
                 <table className="data-table">
@@ -587,9 +1135,24 @@ const AdminDashboard = () => {
                           </td>
                           <td>{new Date(req.submittedAt).toLocaleDateString()}</td>
                           <td>
-                            <button className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => { setActiveRequest(req); setRequestStatus(req.status); }}>
-                              Update Status
-                            </button>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              <button className="btn btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => { setActiveRequest(req); setRequestStatus(req.status); }}>
+                                Update Status
+                              </button>
+                              <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => {
+                                setEditRequestId(req._id);
+                                setEditRequestTitle(req.title);
+                                setEditRequestDescription(req.description);
+                                setEditRequestCategory(req.category);
+                                setEditRequestPriority(req.priority);
+                                setShowEditRequestModal(true);
+                              }}>
+                                Edit
+                              </button>
+                              <button className="btn btn-danger" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', backgroundColor: 'var(--danger)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)' }} onClick={() => handleDeleteRequest(req._id)}>
+                                Delete
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -605,12 +1168,22 @@ const AdminDashboard = () => {
           {/* ======================================== */}
           {activeTab === 'permits' && (
             <div className="animated-fade">
-              <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
-                Building & Trade Permits Review Board
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-                Review architectural zoning specifications and approve/reject resident applications.
-              </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
+                    Building & Trade Permits Review Board
+                  </h2>
+                  <p style={{ color: 'var(--text-secondary)' }}>
+                    Review architectural zoning specifications and approve/reject resident applications.
+                  </p>
+                </div>
+                <button className="btn btn-primary" onClick={() => {
+                  setNewPermitCitizenId(users.filter(u => u.role === 'citizen')[0]?._id || '');
+                  setShowAddPermitModal(true);
+                }}>
+                  Submit Permit on Behalf
+                </button>
+              </div>
 
               <div className="table-container">
                 <table className="data-table">
@@ -642,13 +1215,29 @@ const AdminDashboard = () => {
                             </span>
                           </td>
                           <td>
-                            {permit.status === 'pending' ? (
-                              <button className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => setActivePermit(permit)}>
-                                Review & Decide
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              {permit.status === 'pending' ? (
+                                <button className="btn btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => setActivePermit(permit)}>
+                                  Review & Decide
+                                </button>
+                              ) : (
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', alignSelf: 'center' }}>Reviewed ✓</span>
+                              )}
+                              <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => {
+                                setEditPermitId(permit._id);
+                                setEditPermitTitle(permit.title);
+                                setEditPermitDescription(permit.description);
+                                setEditPermitType(permit.permitType);
+                                setEditPermitStatus(permit.status);
+                                setEditPermitComments(permit.comments || '');
+                                setShowEditPermitModal(true);
+                              }}>
+                                Edit
                               </button>
-                            ) : (
-                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Reviewed ✓</span>
-                            )}
+                              <button className="btn btn-danger" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', backgroundColor: 'var(--danger)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)' }} onClick={() => handleDeletePermit(permit._id)}>
+                                Delete
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -660,7 +1249,168 @@ const AdminDashboard = () => {
           )}
 
           {/* ======================================== */}
-          {/* TAB 5: GIS TOWN PLANNING                 */}
+          {/* TAB 5: EVENT BOOKINGS                    */}
+          {/* ======================================== */}
+          {activeTab === 'bookings' && (
+            <div className="animated-fade">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
+                    Event Bookings Board
+                  </h2>
+                  <p style={{ color: 'var(--text-secondary)' }}>
+                    Track civic facility reservations and public attendance logs.
+                  </p>
+                </div>
+                <button className="btn btn-primary" onClick={() => {
+                  setNewBookingCitizenId(users.filter(u => u.role === 'citizen')[0]?._id || '');
+                  setShowAddBookingModal(true);
+                }}>
+                  Log Booking on Behalf
+                </button>
+              </div>
+
+              <div className="table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Citizen</th>
+                      <th>Event Title</th>
+                      <th>Venue</th>
+                      <th>Date</th>
+                      <th>Time Slot</th>
+                      <th>Tickets</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bookings.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>No bookings registered.</td>
+                      </tr>
+                    ) : (
+                      bookings.map(b => (
+                        <tr key={b._id}>
+                          <td style={{ fontWeight: 600 }}>{b.citizenName}</td>
+                          <td>{b.title}</td>
+                          <td>{b.venue}</td>
+                          <td>{new Date(b.date).toLocaleDateString()}</td>
+                          <td>{b.timeSlot}</td>
+                          <td>{b.ticketsCount}</td>
+                          <td>
+                            <span className={`badge ${b.status === 'approved' ? 'badge-success' : b.status === 'cancelled' ? 'badge-danger' : 'badge-pending'}`}>
+                              {b.status}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => {
+                                setEditBookingId(b._id);
+                                setEditBookingTitle(b.title);
+                                setEditBookingDescription(b.description || '');
+                                setEditBookingDate(b.date ? b.date.substring(0, 10) : '');
+                                setEditBookingTimeSlot(b.timeSlot);
+                                setEditBookingVenue(b.venue);
+                                setEditBookingStatus(b.status);
+                                setEditBookingTickets(b.ticketsCount);
+                                setShowEditBookingModal(true);
+                              }}>
+                                Edit
+                              </button>
+                              <button className="btn btn-danger" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', backgroundColor: 'var(--danger)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)' }} onClick={() => handleDeleteBooking(b._id)}>
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ======================================== */}
+          {/* TAB 6: TAX BILLING                       */}
+          {/* ======================================== */}
+          {activeTab === 'taxes' && (
+            <div className="animated-fade">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
+                    Tax Billing & Levies
+                  </h2>
+                  <p style={{ color: 'var(--text-secondary)' }}>
+                    Issue annual rates, waste disposal charges, and track real-time payments.
+                  </p>
+                </div>
+                <button className="btn btn-primary" onClick={() => {
+                  setNewTaxCitizenId(users.filter(u => u.role === 'citizen')[0]?._id || '');
+                  setShowAddTaxModal(true);
+                }}>
+                  Create Tax Bill
+                </button>
+              </div>
+
+              <div className="table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Citizen</th>
+                      <th>Tax / Levy Type</th>
+                      <th>Billed Amount</th>
+                      <th>Billing Date</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {taxes.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>No tax records found.</td>
+                      </tr>
+                    ) : (
+                      taxes.map(t => (
+                        <tr key={t._id}>
+                          <td style={{ fontWeight: 600 }}>{t.citizenName}</td>
+                          <td>{t.taxType}</td>
+                          <td>${t.amount.toFixed(2)}</td>
+                          <td>{new Date(t.billingDate).toLocaleDateString()}</td>
+                          <td>
+                            <span className={`badge ${t.status === 'paid' ? 'badge-success' : 'badge-pending'}`}>
+                              {t.status}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => {
+                                setEditTaxId(t._id);
+                                setEditTaxAmount(t.amount);
+                                setEditTaxType(t.taxType);
+                                setEditTaxStatus(t.status);
+                                setEditTaxBillingDate(t.billingDate ? t.billingDate.substring(0, 10) : '');
+                                setShowEditTaxModal(true);
+                              }}>
+                                Edit
+                              </button>
+                              <button className="btn btn-danger" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', backgroundColor: 'var(--danger)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)' }} onClick={() => handleDeleteTax(t._id)}>
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ======================================== */}
+          {/* TAB 7: GIS TOWN PLANNING                 */}
           {/* ======================================== */}
           {activeTab === 'gis' && (
             <div className="animated-fade">
@@ -675,51 +1425,103 @@ const AdminDashboard = () => {
           )}
 
           {/* ======================================== */}
-          {/* TAB 6: ANNOUNCEMENTS MANAGEMENT          */}
+          {/* TAB 8: ANNOUNCEMENTS MANAGEMENT          */}
           {/* ======================================== */}
           {activeTab === 'announcements' && (
-            <div className="animated-fade" style={{ maxWidth: '600px', margin: '0 auto' }}>
-              <h2 style={{ fontSize: '1.75rem', marginBottom: '1rem', fontFamily: 'var(--font-heading)', textAlign: 'center' }}>
-                Post System-Wide Announcements
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', textAlign: 'center' }}>
-                Publish urgent maintenance alerts, public assembly dates, or council updates to citizen dashboards.
-              </p>
-
-              <div className="card">
-                <form onSubmit={handlePostAnnouncement}>
-                  <div className="form-group">
-                    <label className="form-label">Alert Header / Title</label>
-                    <input type="text" className="form-input" required placeholder="e.g. Garbage collection delays" value={annTitle} onChange={(e) => setAnnTitle(e.target.value)} />
-                  </div>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="animated-fade dashboard-grid-1to12">
+              <div>
+                <h2 style={{ fontSize: '1.75rem', marginBottom: '1rem', fontFamily: 'var(--font-heading)' }}>
+                  Post Announcements
+                </h2>
+                <div className="card">
+                  <form onSubmit={handlePostAnnouncement}>
                     <div className="form-group">
-                      <label className="form-label">Classification Type</label>
-                      <select className="form-input" value={annType} onChange={(e) => setAnnType(e.target.value)}>
-                        <option value="general">General Advisory</option>
-                        <option value="event">Council Meeting / Event</option>
-                        <option value="urgent">Urgent Notice (Emergency)</option>
-                      </select>
+                      <label className="form-label">Alert Header / Title</label>
+                      <input type="text" className="form-input" required placeholder="e.g. Garbage collection delays" value={annTitle} onChange={(e) => setAnnTitle(e.target.value)} />
                     </div>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                      <div className="form-group">
+                        <label className="form-label">Classification Type</label>
+                        <select className="form-input" value={annType} onChange={(e) => setAnnType(e.target.value)}>
+                          <option value="general">General Advisory</option>
+                          <option value="event">Council Meeting / Event</option>
+                          <option value="urgent">Urgent Notice (Emergency)</option>
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Target View Audience</label>
+                        <select className="form-input" value={annAudience} onChange={(e) => setAnnAudience(e.target.value)}>
+                          <option value="all">Publish to All Users</option>
+                          <option value="citizens">Citizens Only</option>
+                        </select>
+                      </div>
+                    </div>
+
                     <div className="form-group">
-                      <label className="form-label">Target View Audience</label>
-                      <select className="form-input" value={annAudience} onChange={(e) => setAnnAudience(e.target.value)}>
-                        <option value="all">Publish to All Users</option>
-                        <option value="citizens">Citizens Only</option>
-                      </select>
+                      <label className="form-label">Announcement Content Text</label>
+                      <textarea className="form-input" style={{ minHeight: '120px' }} required placeholder="Describe full details of the notice..." value={annContent} onChange={(e) => setAnnContent(e.target.value)} />
                     </div>
-                  </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Announcement Content Text</label>
-                    <textarea className="form-input" style={{ minHeight: '120px' }} required placeholder="Describe full details of the notice..." value={annContent} onChange={(e) => setAnnContent(e.target.value)} />
-                  </div>
+                    <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={submittingAnnouncement}>
+                      <Megaphone size={18} /> {submittingAnnouncement ? 'Publishing...' : 'Publish Announcement'}
+                    </button>
+                  </form>
+                </div>
+              </div>
 
-                  <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-                    <Megaphone size={18} /> Publish Announcement
-                  </button>
-                </form>
+              <div>
+                <h2 style={{ fontSize: '1.75rem', marginBottom: '1rem', fontFamily: 'var(--font-heading)' }}>
+                  Manage Notices
+                </h2>
+                <div className="table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Type</th>
+                        <th>Audience</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {announcements.length === 0 ? (
+                        <tr>
+                          <td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>No announcements posted.</td>
+                        </tr>
+                      ) : (
+                        announcements.map(ann => (
+                          <tr key={ann._id}>
+                            <td style={{ fontWeight: 600 }}>{ann.title}</td>
+                            <td>
+                              <span className={`badge ${ann.type === 'urgent' ? 'badge-danger' : ann.type === 'event' ? 'badge-pending' : 'badge-success'}`}>
+                                {ann.type}
+                              </span>
+                            </td>
+                            <td>{ann.targetAudience}</td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => {
+                                  setEditAnnId(ann._id);
+                                  setEditAnnTitle(ann.title);
+                                  setEditAnnContent(ann.content);
+                                  setEditAnnType(ann.type);
+                                  setEditAnnAudience(ann.targetAudience);
+                                  setShowEditAnnModal(true);
+                                }}>
+                                  Edit
+                                </button>
+                                <button className="btn btn-danger" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', backgroundColor: 'var(--danger)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)' }} onClick={() => handleDeleteAnnouncement(ann._id)}>
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
@@ -752,7 +1554,9 @@ const AdminDashboard = () => {
               
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setActiveRequest(null)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Save Changes</button>
+                <button type="submit" className="btn btn-primary" disabled={submittingRequestStatus}>
+                  {submittingRequestStatus ? 'Saving...' : 'Save Changes'}
+                </button>
               </div>
             </form>
           </div>
@@ -787,7 +1591,9 @@ const AdminDashboard = () => {
 
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setActivePermit(null)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Submit Decision</button>
+                <button type="submit" className="btn btn-primary" disabled={submittingPermitStatus}>
+                  {submittingPermitStatus ? 'Submitting...' : 'Submit Decision'}
+                </button>
               </div>
             </form>
           </div>
@@ -810,7 +1616,36 @@ const AdminDashboard = () => {
               </div>
               <div className="form-group">
                 <label className="form-label">Password</label>
-                <input type="password" className="form-input" required placeholder="Min 6 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showNewPassword ? 'text' : 'password'} 
+                    className="form-input" 
+                    style={{ paddingRight: '2.5rem' }} 
+                    required 
+                    placeholder="Min 6 characters" 
+                    value={newPassword} 
+                    onChange={(e) => setNewPassword(e.target.value)} 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text-tertiary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: 0
+                    }}
+                  >
+                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               <div className="form-group">
                 <label className="form-label">Account Role</label>
@@ -822,7 +1657,9 @@ const AdminDashboard = () => {
               
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowAddUserModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Create User</button>
+                <button type="submit" className="btn btn-primary" disabled={submittingCreateUser}>
+                  {submittingCreateUser ? 'Creating...' : 'Create User'}
+                </button>
               </div>
             </form>
           </div>
@@ -846,7 +1683,35 @@ const AdminDashboard = () => {
               </div>
               <div className="form-group">
                 <label className="form-label">New Password (leave blank to keep current)</label>
-                <input type="password" className="form-input" placeholder="••••••••" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} />
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showEditPassword ? 'text' : 'password'} 
+                    className="form-input" 
+                    style={{ paddingRight: '2.5rem' }} 
+                    placeholder="••••••••" 
+                    value={editPassword} 
+                    onChange={(e) => setEditPassword(e.target.value)} 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword(!showEditPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text-tertiary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: 0
+                    }}
+                  >
+                    {showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               <div className="form-group">
                 <label className="form-label">Account Role</label>
@@ -858,7 +1723,9 @@ const AdminDashboard = () => {
               
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowEditUserModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Save Changes</button>
+                <button type="submit" className="btn btn-primary" disabled={submittingEditUser}>
+                  {submittingEditUser ? 'Saving...' : 'Save Changes'}
+                </button>
               </div>
             </form>
           </div>
@@ -960,6 +1827,435 @@ const AdminDashboard = () => {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Add Service Request Modal */}
+      {showAddRequestModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="card animated-fade" style={{ width: '450px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>Log Request on Behalf</h3>
+            <form onSubmit={handleCreateRequest}>
+              <div className="form-group">
+                <label className="form-label">Select Citizen</label>
+                <select className="form-input" value={newRequestCitizenId} onChange={(e) => setNewRequestCitizenId(e.target.value)}>
+                  {users.filter(u => u.role === 'citizen').map(c => (
+                    <option key={c._id} value={c._id}>{c.username} ({c.email})</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Request Title</label>
+                <input type="text" className="form-input" required placeholder="e.g. Broken streetlight on 4th Ave" value={newRequestTitle} onChange={(e) => setNewRequestTitle(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Department Category</label>
+                <select className="form-input" value={newRequestCategory} onChange={(e) => setNewRequestCategory(e.target.value)}>
+                  <option value="Maintenance">Maintenance & Infrastructure</option>
+                  <option value="Sanitation">Sanitation & Waste</option>
+                  <option value="Zoning">Zoning & Planning</option>
+                  <option value="Other">Other / General Inquiry</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Priority</label>
+                <select className="form-input" value={newRequestPriority} onChange={(e) => setNewRequestPriority(e.target.value)}>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Detailed Description</label>
+                <textarea className="form-input" style={{ minHeight: '100px' }} required placeholder="Provide details about the issue..." value={newRequestDescription} onChange={(e) => setNewRequestDescription(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddRequestModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submittingCreateRequest}>
+                  {submittingCreateRequest ? 'Creating...' : 'Create Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Service Request Modal */}
+      {showEditRequestModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="card animated-fade" style={{ width: '450px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>Edit Service Request</h3>
+            <form onSubmit={handleEditRequest}>
+              <div className="form-group">
+                <label className="form-label">Request Title</label>
+                <input type="text" className="form-input" required value={editRequestTitle} onChange={(e) => setEditRequestTitle(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Department Category</label>
+                <select className="form-input" value={editRequestCategory} onChange={(e) => setEditRequestCategory(e.target.value)}>
+                  <option value="Maintenance">Maintenance & Infrastructure</option>
+                  <option value="Sanitation">Sanitation & Waste</option>
+                  <option value="Zoning">Zoning & Planning</option>
+                  <option value="Other">Other / General Inquiry</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Priority</label>
+                <select className="form-input" value={editRequestPriority} onChange={(e) => setEditRequestPriority(e.target.value)}>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Detailed Description</label>
+                <textarea className="form-input" style={{ minHeight: '100px' }} required value={editRequestDescription} onChange={(e) => setEditRequestDescription(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditRequestModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submittingEditRequest}>
+                  {submittingEditRequest ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Permit Modal */}
+      {showAddPermitModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="card animated-fade" style={{ width: '450px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>Submit Permit on Behalf</h3>
+            <form onSubmit={handleCreatePermit}>
+              <div className="form-group">
+                <label className="form-label">Select Citizen</label>
+                <select className="form-input" value={newPermitCitizenId} onChange={(e) => setNewPermitCitizenId(e.target.value)}>
+                  {users.filter(u => u.role === 'citizen').map(c => (
+                    <option key={c._id} value={c._id}>{c.username} ({c.email})</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Application Title</label>
+                <input type="text" className="form-input" required placeholder="e.g. Residential Extension Plan" value={newPermitTitle} onChange={(e) => setNewPermitTitle(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Permit Category</label>
+                <select className="form-input" value={newPermitType} onChange={(e) => setNewPermitType(e.target.value)}>
+                  <option value="Building Permit">Building Permit</option>
+                  <option value="Business License">Business License</option>
+                  <option value="Zoning Variance">Zoning Variance</option>
+                  <option value="Environmental Permit">Environmental Permit</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Description / Specifications</label>
+                <textarea className="form-input" style={{ minHeight: '100px' }} required placeholder="Outline architectural or business specifications..." value={newPermitDescription} onChange={(e) => setNewPermitDescription(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddPermitModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submittingCreatePermit}>
+                  {submittingCreatePermit ? 'Submitting...' : 'Submit Application'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Permit Modal */}
+      {showEditPermitModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="card animated-fade" style={{ width: '450px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>Edit Permit Application</h3>
+            <form onSubmit={handleEditPermit}>
+              <div className="form-group">
+                <label className="form-label">Application Title</label>
+                <input type="text" className="form-input" required value={editPermitTitle} onChange={(e) => setEditPermitTitle(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Permit Category</label>
+                <select className="form-input" value={editPermitType} onChange={(e) => setEditPermitType(e.target.value)}>
+                  <option value="Building Permit">Building Permit</option>
+                  <option value="Business License">Business License</option>
+                  <option value="Zoning Variance">Zoning Variance</option>
+                  <option value="Environmental Permit">Environmental Permit</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Status</label>
+                <select className="form-input" value={editPermitStatus} onChange={(e) => setEditPermitStatus(e.target.value)}>
+                  <option value="pending">Pending Review</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Internal Comments / Notes</label>
+                <textarea className="form-input" style={{ minHeight: '80px' }} value={editPermitComments} onChange={(e) => setEditPermitComments(e.target.value)} placeholder="Zoning feedback or requirements..." />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Description / Specifications</label>
+                <textarea className="form-input" style={{ minHeight: '100px' }} required value={editPermitDescription} onChange={(e) => setEditPermitDescription(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditPermitModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submittingEditPermit}>
+                  {submittingEditPermit ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Booking Modal */}
+      {showAddBookingModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="card animated-fade" style={{ width: '450px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>Log Booking on Behalf</h3>
+            <form onSubmit={handleCreateBooking}>
+              <div className="form-group">
+                <label className="form-label">Select Citizen</label>
+                <select className="form-input" value={newBookingCitizenId} onChange={(e) => setNewBookingCitizenId(e.target.value)}>
+                  {users.filter(u => u.role === 'citizen').map(c => (
+                    <option key={c._id} value={c._id}>{c.username} ({c.email})</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Event / Purpose</label>
+                <input type="text" className="form-input" required placeholder="e.g. Wedding Reception" value={newBookingTitle} onChange={(e) => setNewBookingTitle(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Venue Location</label>
+                <select className="form-input" value={newBookingVenue} onChange={(e) => setNewBookingVenue(e.target.value)}>
+                  <option value="Town Hall Center">Town Hall Center</option>
+                  <option value="Community Park Pavilion">Community Park Pavilion</option>
+                  <option value="Civic Center Auditorium">Civic Center Auditorium</option>
+                  <option value="Sports Complex Gym">Sports Complex Gym</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Reservation Date</label>
+                <input type="date" className="form-input" required value={newBookingDate} onChange={(e) => setNewBookingDate(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Time Slot</label>
+                <select className="form-input" value={newBookingTimeSlot} onChange={(e) => setNewBookingTimeSlot(e.target.value)}>
+                  <option value="09:00 - 12:00">Morning (09:00 - 12:00)</option>
+                  <option value="13:00 - 17:00">Afternoon (13:00 - 17:00)</option>
+                  <option value="18:00 - 22:00">Evening (18:00 - 22:00)</option>
+                  <option value="09:00 - 22:00">Full Day (09:00 - 22:00)</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Tickets Count / Expected Attendees</label>
+                <input type="number" className="form-input" required min="1" max="500" value={newBookingTickets} onChange={(e) => setNewBookingTickets(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Detailed Notes</label>
+                <textarea className="form-input" style={{ minHeight: '80px' }} value={newBookingDescription} onChange={(e) => setNewBookingDescription(e.target.value)} placeholder="A/V setup or specific equipment needed..." />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddBookingModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submittingCreateBooking}>
+                  {submittingCreateBooking ? 'Logging...' : 'Log Booking'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Booking Modal */}
+      {showEditBookingModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="card animated-fade" style={{ width: '450px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>Edit Event Booking</h3>
+            <form onSubmit={handleEditBooking}>
+              <div className="form-group">
+                <label className="form-label">Event / Purpose</label>
+                <input type="text" className="form-input" required value={editBookingTitle} onChange={(e) => setEditBookingTitle(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Venue Location</label>
+                <select className="form-input" value={editBookingVenue} onChange={(e) => setEditBookingVenue(e.target.value)}>
+                  <option value="Town Hall Center">Town Hall Center</option>
+                  <option value="Community Park Pavilion">Community Park Pavilion</option>
+                  <option value="Civic Center Auditorium">Civic Center Auditorium</option>
+                  <option value="Sports Complex Gym">Sports Complex Gym</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Reservation Date</label>
+                <input type="date" className="form-input" required value={editBookingDate} onChange={(e) => setEditBookingDate(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Time Slot</label>
+                <select className="form-input" value={editBookingTimeSlot} onChange={(e) => setEditBookingTimeSlot(e.target.value)}>
+                  <option value="09:00 - 12:00">Morning (09:00 - 12:00)</option>
+                  <option value="13:00 - 17:00">Afternoon (13:00 - 17:00)</option>
+                  <option value="18:00 - 22:00">Evening (18:00 - 22:00)</option>
+                  <option value="09:00 - 22:00">Full Day (09:00 - 22:00)</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Tickets Count / Expected Attendees</label>
+                <input type="number" className="form-input" required min="1" max="500" value={editBookingTickets} onChange={(e) => setEditBookingTickets(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Booking Status</label>
+                <select className="form-input" value={editBookingStatus} onChange={(e) => setEditBookingStatus(e.target.value)}>
+                  <option value="pending">Pending approval</option>
+                  <option value="approved">Approved</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Detailed Notes</label>
+                <textarea className="form-input" style={{ minHeight: '80px' }} value={editBookingDescription} onChange={(e) => setEditBookingDescription(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditBookingModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submittingEditBooking}>
+                  {submittingEditBooking ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Tax Modal */}
+      {showAddTaxModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="card animated-fade" style={{ width: '450px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>Create Tax Bill</h3>
+            <form onSubmit={handleCreateTax}>
+              <div className="form-group">
+                <label className="form-label">Select Citizen</label>
+                <select className="form-input" value={newTaxCitizenId} onChange={(e) => setNewTaxCitizenId(e.target.value)}>
+                  {users.filter(u => u.role === 'citizen').map(c => (
+                    <option key={c._id} value={c._id}>{c.username} ({c.email})</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Tax / Levy Category</label>
+                <select className="form-input" value={newTaxType} onChange={(e) => setNewTaxType(e.target.value)}>
+                  <option value="Property Tax">Property Tax</option>
+                  <option value="Waste Levy">Waste Levy</option>
+                  <option value="Business Rate">Business Rate</option>
+                  <option value="Utilities Bill">Utilities Bill</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Billing Amount ($)</label>
+                <input type="number" className="form-input" required min="1" step="0.01" placeholder="e.g. 250.00" value={newTaxAmount} onChange={(e) => setNewTaxAmount(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Initial Status</label>
+                <select className="form-input" value={newTaxStatus} onChange={(e) => setNewTaxStatus(e.target.value)}>
+                  <option value="pending">Pending Payment</option>
+                  <option value="paid">Pre-paid / Paid</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Billing Date (defaults to today)</label>
+                <input type="date" className="form-input" value={newTaxBillingDate} onChange={(e) => setNewTaxBillingDate(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAddTaxModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submittingCreateTax}>
+                  {submittingCreateTax ? 'Issuing...' : 'Issue Bill'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Tax Modal */}
+      {showEditTaxModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="card animated-fade" style={{ width: '450px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>Edit Tax Record</h3>
+            <form onSubmit={handleEditTax}>
+              <div className="form-group">
+                <label className="form-label">Tax / Levy Category</label>
+                <select className="form-input" value={editTaxType} onChange={(e) => setEditTaxType(e.target.value)}>
+                  <option value="Property Tax">Property Tax</option>
+                  <option value="Waste Levy">Waste Levy</option>
+                  <option value="Business Rate">Business Rate</option>
+                  <option value="Utilities Bill">Utilities Bill</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Billing Amount ($)</label>
+                <input type="number" className="form-input" required min="1" step="0.01" value={editTaxAmount} onChange={(e) => setEditTaxAmount(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Payment Status</label>
+                <select className="form-input" value={editTaxStatus} onChange={(e) => setEditTaxStatus(e.target.value)}>
+                  <option value="pending">Pending Payment</option>
+                  <option value="paid">Paid</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Billing Date</label>
+                <input type="date" className="form-input" required value={editTaxBillingDate} onChange={(e) => setEditTaxBillingDate(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditTaxModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submittingEditTax}>
+                  {submittingEditTax ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Announcement Modal */}
+      {showEditAnnModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="card animated-fade" style={{ width: '450px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>Edit Announcement Notice</h3>
+            <form onSubmit={handleEditAnnouncement}>
+              <div className="form-group">
+                <label className="form-label">Alert Header / Title</label>
+                <input type="text" className="form-input" required value={editAnnTitle} onChange={(e) => setEditAnnTitle(e.target.value)} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Classification Type</label>
+                  <select className="form-input" value={editAnnType} onChange={(e) => setEditAnnType(e.target.value)}>
+                    <option value="general">General Advisory</option>
+                    <option value="event">Council Meeting / Event</option>
+                    <option value="urgent">Urgent Notice (Emergency)</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Target View Audience</label>
+                  <select className="form-input" value={editAnnAudience} onChange={(e) => setEditAnnAudience(e.target.value)}>
+                    <option value="all">Publish to All Users</option>
+                    <option value="citizens">Citizens Only</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Announcement Content Text</label>
+                <textarea className="form-input" style={{ minHeight: '120px' }} required value={editAnnContent} onChange={(e) => setEditAnnContent(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditAnnModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submittingEditAnn}>
+                  {submittingEditAnn ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

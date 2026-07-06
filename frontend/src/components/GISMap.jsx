@@ -199,7 +199,7 @@ const GISMap = () => {
         <h3 style={{ fontSize: '1.25rem', fontFamily: 'var(--font-heading)' }}>Interactive GIS Town Zoning Portal</h3>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '1.5rem', alignItems: 'start' }} className="animated-fade">
+      <div className="gis-grid animated-fade">
         <div className="gis-canvas-container card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', width: '100%' }}>
           <canvas
             ref={canvasRef}

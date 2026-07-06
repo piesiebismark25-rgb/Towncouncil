@@ -5,7 +5,7 @@
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-heading: 'Outfit', system-ui, sans-serif;
 
-  /* Curated Light Mode Palette */
+  /* Curated Light Mode Palette (Steel-Blue & Teal Corporate Branding) */
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
   --bg-tertiary: #f1f5f9;
@@ -14,13 +14,13 @@
   --text-tertiary: #94a3b8;
   
   --border-color: #e2e8f0;
-  --border-focus: #6366f1;
+  --border-focus: #0f766e;
   
-  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
-  --accent-color: #6366f1;
-  --accent-hover: #4f46e5;
-  --accent-light: rgba(99, 102, 241, 0.08);
+  --accent-gradient: linear-gradient(135deg, #1e3a8a 0%, #0d9488 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #1d4ed8 0%, #0f766e 100%);
+  --accent-color: #1e3a8a;
+  --accent-hover: #1d4ed8;
+  --accent-light: rgba(30, 58, 138, 0.08);
   
   --success: #10b981;
   --success-light: rgba(16, 185, 129, 0.1);
@@ -57,9 +57,13 @@
     --text-tertiary: #64748b;
     
     --border-color: #1e293b;
-    --border-focus: #a855f7;
+    --border-focus: #14b8a6;
     
-    --accent-light: rgba(168, 85, 247, 0.12);
+    --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #14b8a6 100%);
+    --accent-gradient-hover: linear-gradient(135deg, #60a5fa 0%, #2dd4bf 100%);
+    --accent-color: #3b82f6;
+    --accent-hover: #60a5fa;
+    --accent-light: rgba(59, 130, 246, 0.15);
     
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
@@ -401,4 +405,149 @@ a:hover {
   height: 18px;
   border-radius: 4px;
   border: 1px solid var(--border-color);
+}
+
+/* Menu Toggle Base Styling */
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* Responsive Grid Abstractions */
+.dashboard-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.dashboard-grid-2to1 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+}
+
+.dashboard-grid-1to12 {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 2rem;
+}
+
+.dashboard-grid-12to1 {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 2rem;
+}
+
+.gis-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* ========================================================================== */
+/* Mobile and Tablet Responsiveness Media Queries                             */
+/* ========================================================================== */
+@media (max-width: 768px) {
+  .menu-toggle {
+    display: block !important;
+  }
+  
+  .app-container {
+    flex-direction: column !important;
+  }
+
+  .sidebar {
+    position: fixed !important;
+    top: 70px !important; /* start below navbar */
+    left: -260px !important;
+    bottom: 0 !important;
+    width: 260px !important;
+    height: calc(100vh - 70px) !important;
+    z-index: 1001 !important;
+    box-shadow: var(--shadow-xl) !important;
+    transition: left var(--transition-normal) !important;
+  }
+
+  body.mobile-sidebar-open .sidebar {
+    left: 0 !important;
+  }
+
+  /* Overlay when mobile sidebar is open */
+  body.mobile-sidebar-open::after {
+    content: '';
+    position: fixed;
+    top: 70px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 1000;
+  }
+
+  .page-container {
+    padding: 1rem !important;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Navbar Mobile Responsiveness */
+  .navbar {
+    padding: 0 1rem !important;
+  }
+
+  .navbar h2 {
+    font-size: 1rem !important;
+  }
+
+  .nav-user-info-text {
+    display: none !important;
+  }
+
+  .nav-logout-text {
+    display: none !important;
+  }
+
+  .nav-logout-btn {
+    padding: 0.4rem !important;
+  }
+
+  /* Grid layout overrides for two-column desktop pages to stack on mobile */
+  .dashboard-grid-2col,
+  .dashboard-grid-2to1,
+  .dashboard-grid-1to12,
+  .dashboard-grid-12to1,
+  .gis-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+
+  .gis-canvas-container canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Adjust table padding for smaller mobile viewports */
+  .data-table th, .data-table td {
+    padding: 0.75rem 1rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* Form adjustments */
+  .form-input {
+    font-size: 0.9rem !important;
+    padding: 0.6rem 0.8rem !important;
+  }
+
+  .btn {
+    padding: 0.6rem 1.2rem !important;
+    font-size: 0.9rem !important;
+  }
 }

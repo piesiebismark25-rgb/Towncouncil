@@ -37,13 +37,14 @@ export const payTax = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Tax bill is already paid' });
     }
 
-    // Mock payment confirmation
-    const receiptNum = 'REC-2026-' + Math.floor(100000 + Math.random() * 900000);
+    // Mock payment confirmation or use Paystack reference if provided
+    const reference = req.body.reference;
+    const receiptNum = reference || ('REC-2026-' + Math.floor(100000 + Math.random() * 900000));
     const updatedTax = await TaxPayment.findByIdAndUpdate(taxId, {
       status: 'paid',
       paymentDate: new Date(),
       receiptNumber: receiptNum
-    });
+    }, { new: true });
 
     res.status(200).json({
       status: 'success',
