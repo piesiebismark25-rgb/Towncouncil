@@ -8,7 +8,8 @@ import {
   PermitApplicationSchema,
   EventBookingSchema,
   ServiceRequestSchema,
-  AnnouncementSchema
+  AnnouncementSchema,
+  NotificationSchema
 } from './schemas.js';
 
 // JSON database mock implementation
@@ -120,7 +121,7 @@ class JSONModel {
 const useMongo = () => mongoose.connection.readyState === 1;
 
 // Lazy compiled mongoose models
-let MongoUser, MongoTaxPayment, MongoPermitApplication, MongoEventBooking, MongoServiceRequest, MongoAnnouncement;
+let MongoUser, MongoTaxPayment, MongoPermitApplication, MongoEventBooking, MongoServiceRequest, MongoAnnouncement, MongoNotification;
 
 const getMongoModels = () => {
   if (!MongoUser) {
@@ -130,6 +131,7 @@ const getMongoModels = () => {
     MongoEventBooking = mongoose.models.EventBooking || mongoose.model('EventBooking', EventBookingSchema);
     MongoServiceRequest = mongoose.models.ServiceRequest || mongoose.model('ServiceRequest', ServiceRequestSchema);
     MongoAnnouncement = mongoose.models.Announcement || mongoose.model('Announcement', AnnouncementSchema);
+    MongoNotification = mongoose.models.Notification || mongoose.model('Notification', NotificationSchema);
   }
   return {
     User: MongoUser,
@@ -137,7 +139,8 @@ const getMongoModels = () => {
     PermitApplication: MongoPermitApplication,
     EventBooking: MongoEventBooking,
     ServiceRequest: MongoServiceRequest,
-    Announcement: MongoAnnouncement
+    Announcement: MongoAnnouncement,
+    Notification: MongoNotification
   };
 };
 
@@ -148,7 +151,8 @@ const jsonModels = {
   PermitApplication: new JSONModel('permits'),
   EventBooking: new JSONModel('bookings'),
   ServiceRequest: new JSONModel('requests'),
-  Announcement: new JSONModel('announcements')
+  Announcement: new JSONModel('announcements'),
+  Notification: new JSONModel('notifications')
 };
 
 // Wrapper creation utility
@@ -211,6 +215,7 @@ export const PermitApplication = createModelWrapper('PermitApplication');
 export const EventBooking = createModelWrapper('EventBooking');
 export const ServiceRequest = createModelWrapper('ServiceRequest');
 export const Announcement = createModelWrapper('Announcement');
+export const Notification = createModelWrapper('Notification');
 
 // Seed Function
 export const seedDatabase = async () => {

@@ -1,4 +1,22 @@
 import { TaxPayment, PermitApplication, EventBooking, ServiceRequest, Announcement } from '../models/dbFactory.js';
+import { createNotification } from './notificationController.js';
+
+const notifyAdmins = async ({ title, message, category, linkTarget, actor }) => {
+  try {
+    await createNotification({
+      recipientRole: 'admin',
+      actorRole: 'citizen',
+      actorId: actor?.id,
+      actorName: actor?.username,
+      title,
+      message,
+      category,
+      linkTarget
+    });
+  } catch (err) {
+    console.error('Admin Notification Error:', err.message);
+  }
+};
 
 // ==========================================
 // 1. Tax Payments
@@ -45,6 +63,14 @@ export const payTax = async (req, res) => {
       paymentDate: new Date(),
       receiptNumber: receiptNum
     }, { new: true });
+
+    await notifyAdmins({
+      title: 'Tax payment received',
+      message: `${req.user.username} paid ${tax.taxType}. Receipt: ${receiptNum}.`,
+      category: 'tax',
+      linkTarget: 'taxes',
+      actor: req.user
+    });
 
     res.status(200).json({
       status: 'success',
@@ -94,6 +120,14 @@ export const applyForPermit = async (req, res) => {
       status: 'pending'
     });
 
+    await notifyAdmins({
+      title: 'New permit application',
+      message: `${req.user.username} submitted "${title}" for review.`,
+      category: 'permit',
+      linkTarget: 'permits',
+      actor: req.user
+    });
+
     res.status(201).json({ status: 'success', data: newPermit });
   } catch (err) {
     console.error('Apply Permit Error:', err.message);
@@ -139,6 +173,14 @@ export const bookEvent = async (req, res) => {
       venue,
       ticketsCount: ticketsCount || 1,
       status: 'approved' // Automatically approve bookings
+    });
+
+    await notifyAdmins({
+      title: 'New event booking',
+      message: `${req.user.username} booked "${title}" at ${venue}.`,
+      category: 'booking',
+      linkTarget: 'bookings',
+      actor: req.user
     });
 
     res.status(201).json({ status: 'success', data: newBooking });
@@ -201,6 +243,14 @@ export const createServiceRequest = async (req, res) => {
         status: 'submitted',
         comment: 'Request registered successfully.'
       }]
+    });
+
+    await notifyAdmins({
+      title: 'New service request',
+      message: `${req.user.username} filed "${title}" in ${category}.`,
+      category: 'request',
+      linkTarget: 'requests',
+      actor: req.user
     });
 
     res.status(201).json({ status: 'success', data: newRequest });

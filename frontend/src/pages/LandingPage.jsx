@@ -1,60 +1,122 @@
-import React from 'react';
-import { Landmark, ArrowRight, ShieldCheck, Map, Clock } from 'lucide-react';
+import { Landmark, ArrowRight, ShieldCheck, Map, Clock, Recycle, ClipboardCheck, Trash2 } from 'lucide-react';
+import heroPoster from '../assets/hero.png';
 
 const LandingPage = ({ onGetStarted }) => {
   return (
-    <div className="page-container animated-fade" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', textAlign: 'center' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', backgroundColor: 'var(--accent-light)', padding: '0.5rem 1.25rem', borderRadius: '50px', border: '1px solid var(--border-focus)' }}>
-        <Landmark size={20} style={{ color: 'var(--accent-color)' }} />
-        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-color)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Town Council Digital Portal
-        </span>
-      </div>
+    <div className="landing-page animated-fade">
+      <section className="landing-hero" aria-label="Town council sanitation and community cleanup">
+        <video
+          className="landing-hero-video"
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster={heroPoster}
+          aria-hidden="true"
+        >
+          <source src="/videos/community-cleanup.mp4" type="video/mp4" />
+          <source src="/videos/community-cleanup.webm" type="video/webm" />
+        </video>
+        <div className="landing-hero-overlay" />
 
-      <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '3rem', fontWeight: 800, lineHeight: 1.1, maxWidth: '850px', margin: '0.5rem 0 1.5rem', letterSpacing: '-0.03em' }}>
-        Connecting Citizens through <span style={{ background: 'var(--accent-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Efficient Governance</span>
-      </h1>
+        <div className="landing-hero-shell">
+          <div className="landing-hero-content">
+            <div className="landing-kicker">
+              <Landmark size={20} />
+              <span>Town Council Digital Portal</span>
+            </div>
 
-      <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', maxWidth: '650px', marginBottom: '2.5rem' }}>
-        Apply for building permits, pay property taxes, book community events, and submit service feedback requests directly to your local town council.
-      </p>
+            <h1 className="landing-title">
+              Community sanitation, permits, and town services in one civic portal.
+            </h1>
 
-      <button onClick={onGetStarted} className="btn btn-primary" style={{ padding: '0.9rem 2.25rem', borderRadius: 'var(--radius-md)', fontSize: '1.05rem', boxShadow: '0 8px 24px rgba(99, 102, 241, 0.2)' }}>
-        Get Started
-        <ArrowRight size={18} />
-      </button>
+            <p className="landing-subtitle">
+              Coordinate cleanup reports, waste collection issues, permit applications, tax payments, and council announcements with a portal built around everyday town work.
+            </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', width: '100%', maxWidth: '1100px', marginTop: '5rem' }}>
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem' }}>
-          <div style={{ padding: '1rem', backgroundColor: 'var(--success-light)', borderRadius: '50%', color: 'var(--success)', marginBottom: '1.25rem' }}>
+            <div className="landing-actions">
+              <button onClick={onGetStarted} className="btn btn-primary landing-primary-action">
+                Enter Portal
+                <ArrowRight size={18} />
+              </button>
+              <div className="landing-service-chip">
+                <Recycle size={17} />
+                <span>Sanitation desk open for citizen reports</span>
+              </div>
+            </div>
+          </div>
+
+          <aside className="landing-operations-panel" aria-label="Town service highlights">
+            <div className="landing-panel-header">
+              <span>Today at the council</span>
+              <strong>Sanitation response</strong>
+            </div>
+            <div className="landing-panel-item">
+              <Trash2 size={20} />
+              <div>
+                <strong>Waste complaints</strong>
+                <span>Log refuse, drains, dumping, and street cleanup cases.</span>
+              </div>
+            </div>
+            <div className="landing-panel-item">
+              <ClipboardCheck size={20} />
+              <div>
+                <strong>Tracked follow-up</strong>
+                <span>Citizens receive updates as officers review requests.</span>
+              </div>
+            </div>
+            <div className="landing-panel-metrics">
+              <div>
+                <strong>24/7</strong>
+                <span>digital access</span>
+              </div>
+              <div>
+                <strong>1</strong>
+                <span>service record</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <div className="landing-hero-bottom">
+          <span>Cleanup coordination</span>
+          <span>Permit services</span>
+          <span>Property billing</span>
+          <span>Council notices</span>
+        </div>
+      </section>
+
+      <section className="landing-services">
+        <div className="landing-service-card">
+          <div className="landing-service-icon success-icon">
             <ShieldCheck size={28} />
           </div>
-          <h3 style={{ fontSize: '1.15rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>Secure Payments</h3>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            Process property taxes, waste management fees, and permit billing securely with instant receipt generation.
+          <h3>Waste & Sanitation Requests</h3>
+          <p>
+            Submit cleanup requests for refuse collection, blocked drains, illegal dumping, and neighborhood sanitation concerns.
           </p>
         </div>
 
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem' }}>
-          <div style={{ padding: '1rem', backgroundColor: 'var(--accent-light)', borderRadius: '50%', color: 'var(--accent-color)', marginBottom: '1.25rem' }}>
+        <div className="landing-service-card">
+          <div className="landing-service-icon accent-icon">
             <Map size={28} />
           </div>
-          <h3 style={{ fontSize: '1.15rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>GIS Town Planning</h3>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            Explore town zones and available plots. Admins can manage public zoning and developers can coordinate submissions.
+          <h3>GIS Town Planning</h3>
+          <p>
+            Explore town zones and available plots while council teams coordinate zoning, inspections, and development records.
           </p>
         </div>
 
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem' }}>
-          <div style={{ padding: '1rem', backgroundColor: 'var(--warning-light)', borderRadius: '50%', color: 'var(--warning)', marginBottom: '1.25rem' }}>
+        <div className="landing-service-card">
+          <div className="landing-service-icon warning-icon">
             <Clock size={28} />
           </div>
-          <h3 style={{ fontSize: '1.15rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>Real-time Tracking</h3>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            Submit service requests (lighting, potholes, waste issues) and track status updates from the town council in real-time.
+          <h3>Real-time Tracking</h3>
+          <p>
+            Follow updates from town officers as sanitation reports, permit applications, bookings, and bills move through review.
           </p>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

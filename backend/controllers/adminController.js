@@ -1,7 +1,43 @@
 import { User, TaxPayment, PermitApplication, EventBooking, ServiceRequest, Announcement } from '../models/dbFactory.js';
+import { createNotification } from './notificationController.js';
 import fs from 'fs';
 import path from 'path';
 import bcrypt from 'bcryptjs';
+
+const notifyCitizen = async ({ citizenId, title, message, category, linkTarget, actor }) => {
+  try {
+    await createNotification({
+      recipientRole: 'citizen',
+      recipientId: citizenId,
+      actorRole: 'admin',
+      actorId: actor?.id,
+      actorName: actor?.username,
+      title,
+      message,
+      category,
+      linkTarget
+    });
+  } catch (err) {
+    console.error('Citizen Notification Error:', err.message);
+  }
+};
+
+const notifyAllCitizens = async ({ title, message, category, linkTarget, actor }) => {
+  try {
+    await createNotification({
+      recipientRole: 'citizen',
+      actorRole: 'admin',
+      actorId: actor?.id,
+      actorName: actor?.username,
+      title,
+      message,
+      category,
+      linkTarget
+    });
+  } catch (err) {
+    console.error('Citizen Broadcast Notification Error:', err.message);
+  }
+};
 
 // ==========================================
 // 1. Data Analytics & Insights
@@ -333,6 +369,15 @@ export const updateServiceRequest = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Service request not found' });
     }
 
+    await notifyCitizen({
+      citizenId: updatedRequest.citizenId,
+      title: 'Service request updated',
+      message: `${updatedRequest.title} is now ${status}. ${comment || ''}`.trim(),
+      category: 'request',
+      linkTarget: 'requests',
+      actor: req.user
+    });
+
     res.status(200).json({
       status: 'success',
       message: 'Service request updated successfully',
@@ -372,6 +417,15 @@ export const createRequestOnBehalf = async (req, res) => {
         status: 'submitted',
         comment: 'Service request lodged by Admin on behalf of citizen.'
       }]
+    });
+
+    await notifyCitizen({
+      citizenId,
+      title: 'Service request created for you',
+      message: `A council administrator logged "${title}" on your behalf.`,
+      category: 'request',
+      linkTarget: 'requests',
+      actor: req.user
     });
 
     res.status(201).json({ status: 'success', data: request });
@@ -465,6 +519,15 @@ export const updatePermitStatus = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Permit application not found' });
     }
 
+    await notifyCitizen({
+      citizenId: updatedPermit.citizenId,
+      title: 'Permit decision updated',
+      message: `${updatedPermit.title} was marked as ${status}. ${comments || ''}`.trim(),
+      category: 'permit',
+      linkTarget: 'permits',
+      actor: req.user
+    });
+
     res.status(200).json({
       status: 'success',
       message: `Permit application marked as ${status}`,
@@ -519,6 +582,14 @@ export const createAnnouncement = async (req, res) => {
       targetAudience: targetAudience || 'all',
       imageUrl,
       date: new Date()
+    });
+
+    await notifyAllCitizens({
+      title: 'New council announcement',
+      message: title,
+      category: 'announcement',
+      linkTarget: 'announcements',
+      actor: req.user
     });
 
     res.status(201).json({ status: 'success', data: newAnnouncement });
@@ -604,6 +675,16 @@ export const createPermitOnBehalf = async (req, res) => {
       submittedAt: new Date(),
       updatedAt: new Date()
     });
+
+    await notifyCitizen({
+      citizenId,
+      title: 'Permit application created for you',
+      message: `A council administrator created "${title}" on your behalf.`,
+      category: 'permit',
+      linkTarget: 'permits',
+      actor: req.user
+    });
+
     res.status(201).json({ status: 'success', data: newPermit });
   } catch (err) {
     console.error('Create Permit Error:', err.message);
@@ -634,6 +715,15 @@ export const editPermit = async (req, res) => {
       comments: comments !== undefined ? comments : permit.comments,
       updatedAt: new Date()
     }, { new: true });
+
+    await notifyCitizen({
+      citizenId: updated.citizenId,
+      title: 'Permit application updated',
+      message: `${updated.title} was updated by the council.`,
+      category: 'permit',
+      linkTarget: 'permits',
+      actor: req.user
+    });
 
     res.status(200).json({ status: 'success', data: updated });
   } catch (err) {
@@ -701,6 +791,16 @@ export const createBookingOnBehalf = async (req, res) => {
       ticketsCount: Number(ticketsCount) || 1,
       createdAt: new Date()
     });
+
+    await notifyCitizen({
+      citizenId,
+      title: 'Event booking created for you',
+      message: `A council administrator created "${title}" at ${venue}.`,
+      category: 'booking',
+      linkTarget: 'events',
+      actor: req.user
+    });
+
     res.status(201).json({ status: 'success', data: newBooking });
   } catch (err) {
     console.error('Create Booking Error:', err.message);
@@ -732,6 +832,15 @@ export const updateBooking = async (req, res) => {
       status: status || booking.status,
       ticketsCount: ticketsCount !== undefined ? Number(ticketsCount) : booking.ticketsCount
     }, { new: true });
+
+    await notifyCitizen({
+      citizenId: updated.citizenId,
+      title: 'Event booking updated',
+      message: `${updated.title} was updated by the council.`,
+      category: 'booking',
+      linkTarget: 'events',
+      actor: req.user
+    });
 
     res.status(200).json({ status: 'success', data: updated });
   } catch (err) {
@@ -795,6 +904,16 @@ export const createTaxBill = async (req, res) => {
       status: status || 'pending',
       billingDate: billingDate || new Date()
     });
+
+    await notifyCitizen({
+      citizenId,
+      title: 'New tax bill issued',
+      message: `${taxType} bill of ${Number(amount).toFixed(2)} has been issued to your account.`,
+      category: 'tax',
+      linkTarget: 'taxes',
+      actor: req.user
+    });
+
     res.status(201).json({ status: 'success', data: newTax });
   } catch (err) {
     console.error('Create Tax Error:', err.message);
@@ -823,6 +942,15 @@ export const editTaxBill = async (req, res) => {
       status: status || tax.status,
       billingDate: billingDate || tax.billingDate
     }, { new: true });
+
+    await notifyCitizen({
+      citizenId: updated.citizenId,
+      title: 'Tax bill updated',
+      message: `${updated.taxType} was updated by the council.`,
+      category: 'tax',
+      linkTarget: 'taxes',
+      actor: req.user
+    });
 
     res.status(200).json({ status: 'success', data: updated });
   } catch (err) {

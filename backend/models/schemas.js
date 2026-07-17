@@ -69,11 +69,26 @@ const AnnouncementSchema = new mongoose.Schema({
   imageUrl: { type: String }
 });
 
+const NotificationSchema = new mongoose.Schema({
+  recipientRole: { type: String, enum: ['admin', 'citizen'], required: true },
+  recipientId: { type: String },
+  actorRole: { type: String, enum: ['admin', 'citizen', 'system'], default: 'system' },
+  actorId: { type: String },
+  actorName: { type: String },
+  title: { type: String, required: true },
+  message: { type: String, required: true },
+  category: { type: String, default: 'general' },
+  linkTarget: { type: String },
+  readBy: [{ type: String }],
+  createdAt: { type: Date, default: Date.now }
+});
+
 export {
   UserSchema,
   TaxPaymentSchema,
   PermitApplicationSchema,
   EventBookingSchema,
   ServiceRequestSchema,
-  AnnouncementSchema
+  AnnouncementSchema,
+  NotificationSchema
 };
