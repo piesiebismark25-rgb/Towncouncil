@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
+  email: { type: String, unique: true, sparse: true },
+  phone: { type: String, unique: true, sparse: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['citizen', 'admin'], default: 'citizen' },
   createdAt: { type: Date, default: Date.now }
@@ -52,6 +53,9 @@ const ServiceRequestSchema = new mongoose.Schema({
   category: { type: String, required: true },
   status: { type: String, enum: ['submitted', 'in-progress', 'resolved'], default: 'submitted' },
   priority: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
+  language: { type: String, default: 'English' },
+  inputMode: { type: String, enum: ['text', 'audio'], default: 'text' },
+  audioData: { type: String },
   submittedAt: { type: Date, default: Date.now },
   updates: [{
     status: String,

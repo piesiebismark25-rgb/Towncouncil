@@ -115,7 +115,7 @@ export const applyForPermit = async (req, res) => {
       citizenId: req.user.id.toString(),
       citizenName: req.user.username,
       title,
-      description,
+      description: inputMode === 'audio' ? (description || 'Voice recording attached') : description,
       permitType,
       status: 'pending'
     });
@@ -225,10 +225,10 @@ export const getMyRequests = async (req, res) => {
 // @access  Private
 export const createServiceRequest = async (req, res) => {
   try {
-    const { title, description, category, priority } = req.body;
+    const { title, description, category, priority, language, inputMode, audioData } = req.body;
 
-    if (!title || !description || !category) {
-      return res.status(400).json({ status: 'error', message: 'Please provide title, description and category' });
+    if (!title || !category || (inputMode === 'audio' ? !audioData : !description)) {
+      return res.status(400).json({ status: 'error', message: 'Please provide a title, category, and a typed or recorded description' });
     }
 
     const newRequest = await ServiceRequest.create({
@@ -238,6 +238,9 @@ export const createServiceRequest = async (req, res) => {
       description,
       category,
       priority: priority || 'medium',
+      language: language || 'English',
+      inputMode: inputMode === 'audio' ? 'audio' : 'text',
+      audioData: inputMode === 'audio' ? audioData : undefined,
       status: 'submitted',
       updates: [{
         status: 'submitted',

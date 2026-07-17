@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "_id": "q6qvd5o7k7bxdvkia9tx",
+    "createdAt": "2026-07-17T10:03:56.261Z",
+    "username": "System Admin",
+    "email": "admin@towncouncil.gov",
+    "password": "$2a$10$vmoY7MbjodpuvLKtjOc/DOk4qDJQSqCzljWXI3OqbuWMmhiu3bga.",
+    "role": "admin"
+  },
+  {
+    "_id": "9h0netatu1ai6yxi8jryqj",
+    "createdAt": "2026-07-17T10:03:56.269Z",
+    "username": "John Doe",
+    "email": "citizen@gmail.com",
+    "password": "$2a$10$vmoY7MbjodpuvLKtjOc/DOk4qDJQSqCzljWXI3OqbuWMmhiu3bga.",
+    "role": "citizen"
+  }
+]

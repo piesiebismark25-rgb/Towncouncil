@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Login handler
-  const login = async (email, password) => {
+  const login = async (identifier, password) => {
     setError(null);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }) => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ identifier, password })
       });
 
       const resData = await response.json();
@@ -76,7 +76,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Register handler
-  const register = async (username, email, password, role = 'citizen') => {
+  const register = async (username, identifier, password, role = 'citizen') => {
     setError(null);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -84,7 +84,7 @@ export const AuthProvider = ({ children }) => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ username, email, password, role })
+        body: JSON.stringify({ username, identifier, password, role })
       });
 
       const resData = await response.json();

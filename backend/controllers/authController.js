@@ -16,16 +16,20 @@ const generateToken = (id) => {
 // @access  Public
 export const registerUser = async (req, res) => {
   try {
-    const { username, email, password, role } = req.body;
+    const { username, identifier, email: legacyEmail, password, role } = req.body;
+    const contact = (identifier || legacyEmail || '').trim().toLowerCase();
+    const isEmail = contact.includes('@');
+    const email = isEmail ? contact : undefined;
+    const phone = isEmail ? undefined : contact.replace(/[\s()-]/g, '');
 
-    if (!username || !email || !password) {
-      return res.status(400).json({ status: 'error', message: 'Please provide username, email and password' });
+    if (!username || !contact || !password) {
+      return res.status(400).json({ status: 'error', message: 'Please provide your name, email or phone number, and password' });
     }
 
     // Check if user exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne(isEmail ? { email } : { phone });
     if (userExists) {
-      return res.status(400).json({ status: 'error', message: 'User already exists with this email' });
+      return res.status(400).json({ status: 'error', message: `An account already exists with this ${isEmail ? 'email' : 'phone number'}` });
     }
 
     // Hash Password
@@ -37,6 +41,7 @@ export const registerUser = async (req, res) => {
     const user = await User.create({
       username,
       email,
+      phone,
       password: hashedPassword,
       role: assignedRole
     });
@@ -48,6 +53,7 @@ export const registerUser = async (req, res) => {
           _id: user._id,
           username: user.username,
           email: user.email,
+          phone: user.phone,
           role: user.role,
           token: generateToken(user._id)
         }
@@ -66,22 +72,25 @@ export const registerUser = async (req, res) => {
 // @access  Public
 export const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { identifier, email: legacyEmail, password } = req.body;
+    const contact = (identifier || legacyEmail || '').trim().toLowerCase();
+    const isEmail = contact.includes('@');
+    const normalizedContact = isEmail ? contact : contact.replace(/[\s()-]/g, '');
 
-    if (!email || !password) {
-      return res.status(400).json({ status: 'error', message: 'Please provide email and password' });
+    if (!contact || !password) {
+      return res.status(400).json({ status: 'error', message: 'Please provide your email or phone number and password' });
     }
 
     // Find User
-    const user = await User.findOne({ email });
+    const user = await User.findOne(isEmail ? { email: normalizedContact } : { phone: normalizedContact });
     if (!user) {
-      return res.status(400).json({ status: 'error', message: 'Invalid email or password' });
+      return res.status(400).json({ status: 'error', message: 'Invalid email/phone number or password' });
     }
 
     // Check Password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ status: 'error', message: 'Invalid email or password' });
+      return res.status(400).json({ status: 'error', message: 'Invalid email/phone number or password' });
     }
 
     res.status(200).json({
@@ -90,6 +99,7 @@ export const loginUser = async (req, res) => {
         _id: user._id,
         username: user.username,
         email: user.email,
+        phone: user.phone,
         role: user.role,
         token: generateToken(user._id)
       }

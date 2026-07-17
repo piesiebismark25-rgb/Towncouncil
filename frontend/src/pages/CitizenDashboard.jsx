@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
@@ -14,8 +14,23 @@ import {
   CheckCircle,
   FileCheck,
   Eye,
-  EyeOff
+  EyeOff,
+  Mic,
+  Square,
+  Keyboard,
+  Volume2,
+  Check
 } from 'lucide-react';
+
+const requestCategories = [
+  { value: 'Waste', label: 'Waste', image: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=420&q=80' },
+  { value: 'Road', label: 'Roads', image: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=420&q=80' },
+  { value: 'Lighting', label: 'Street lights', image: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=420&q=80' },
+  { value: 'Water', label: 'Water & drains', image: 'https://images.unsplash.com/photo-1521207418485-99c705420785?auto=format&fit=crop&w=420&q=80' },
+  { value: 'Other', label: 'Other issue', image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=420&q=80' }
+];
+
+const requestLanguages = ['English', 'Twi', 'Ga', 'Ewe', 'Hausa'];
 
 const CitizenDashboard = () => {
   const { user, updateUser, API_BASE_URL } = useAuth();
@@ -37,6 +52,12 @@ const CitizenDashboard = () => {
   const [requestDesc, setRequestDesc] = useState('');
   const [requestCat, setRequestCat] = useState('Waste');
   const [requestPriority, setRequestPriority] = useState('medium');
+  const [requestLanguage, setRequestLanguage] = useState('');
+  const [requestInputMode, setRequestInputMode] = useState('');
+  const [audioData, setAudioData] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   const [paymentModalTax, setPaymentModalTax] = useState(null);
   const [cardNumber, setCardNumber] = useState('');
@@ -264,13 +285,15 @@ const CitizenDashboard = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ title: requestTitle, description: requestDesc, category: requestCat, priority: requestPriority })
+        body: JSON.stringify({ title: requestTitle, description: requestDesc, category: requestCat, priority: requestPriority, language: requestLanguage, inputMode: requestInputMode, audioData })
       });
 
       if (response.ok) {
         showNotification('Service request filed. Feedback logged.');
         setRequestTitle('');
         setRequestDesc('');
+        setAudioData('');
+        setRequestInputMode('');
         fetchData();
       }
     } catch (err) {
@@ -278,6 +301,32 @@ const CitizenDashboard = () => {
     } finally {
       setSubmittingRequest(false);
     }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (event) => audioChunksRef.current.push(event.data);
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => setAudioData(reader.result);
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach((track) => track.stop());
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+    } catch {
+      showNotification('Microphone access is needed to record your request.', 'error');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
+    setIsRecording(false);
   };
 
   const pendingTaxesCount = taxes.filter(t => t.status === 'pending').length;
@@ -662,51 +711,87 @@ const CitizenDashboard = () => {
           {activeTab === 'requests' && (
             <div className="animated-fade dashboard-grid-1to12">
               <div>
-                <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
+                <h2 style={{ fontSize: '1.45rem', marginBottom: '0.4rem', fontFamily: 'var(--font-heading)' }}>
                   Service Feedback & Requests
                 </h2>
-                <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-                  Log utility reports, waste collection inquiries, road maintenance issues, or street light feedback.
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '1.25rem', fontSize: '0.82rem' }}>
+                  Follow the simple steps below. You can speak or type your report.
                 </p>
 
-                <div className="card">
-                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontFamily: 'var(--font-heading)' }}>File Feedback Report</h3>
-                  <form onSubmit={handleCreateRequest}>
-                    <div className="form-group">
-                      <label className="form-label">Brief Title / Topic</label>
-                      <input type="text" className="form-input" required placeholder="e.g. Major Pothole near Central Mall" value={requestTitle} onChange={(e) => setRequestTitle(e.target.value)} />
+                <div className="card service-request-card">
+                  <div className="request-step">
+                    <span className="request-step-number">1</span>
+                    <div>
+                      <h3>Choose your language</h3>
+                      <p>Select the language you understand best.</p>
                     </div>
+                  </div>
+                  <div className="language-grid">
+                    {requestLanguages.map((language) => (
+                      <button key={language} type="button" className={`choice-button ${requestLanguage === language ? 'selected' : ''}`} onClick={() => setRequestLanguage(language)}>
+                        {requestLanguage === language && <Check size={14} />} {language}
+                      </button>
+                    ))}
+                  </div>
+
+                  {requestLanguage && <>
+                  <div className="request-step">
+                    <span className="request-step-number">2</span>
+                    <div><h3>What is the problem?</h3><p>Tap the picture that matches the issue.</p></div>
+                  </div>
+                  <div className="category-image-grid">
+                    {requestCategories.map((category) => (
+                      <button key={category.value} type="button" className={`category-image-card ${requestCat === category.value ? 'selected' : ''}`} onClick={() => setRequestCat(category.value)}>
+                        <img src={category.image} alt="" />
+                        <span>{category.label}</span>
+                        {requestCat === category.value && <Check className="category-check" size={16} />}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="request-step">
+                    <span className="request-step-number">3</span>
+                    <div><h3>Speak or type</h3><p>Choose the easiest way to explain the problem.</p></div>
+                  </div>
+                  <div className="input-mode-grid">
+                    <button type="button" className={`input-mode-card ${requestInputMode === 'audio' ? 'selected' : ''}`} onClick={() => setRequestInputMode('audio')}><Mic size={24} /><strong>Use my voice</strong><span>Record a message</span></button>
+                    <button type="button" className={`input-mode-card ${requestInputMode === 'text' ? 'selected' : ''}`} onClick={() => setRequestInputMode('text')}><Keyboard size={24} /><strong>Type it</strong><span>Write a message</span></button>
+                  </div>
+
+                  {requestInputMode && <form onSubmit={handleCreateRequest} className="request-details-form">
                     <div className="form-group">
-                      <label className="form-label">Category Department</label>
-                      <select className="form-input" value={requestCat} onChange={(e) => setRequestCat(e.target.value)}>
-                        <option value="Waste">Garbage & Waste Disposal</option>
-                        <option value="Road">Road & Sidewalk Damage</option>
-                        <option value="Lighting">Street Lights & Grid Maintenance</option>
-                        <option value="Water">Water Leaks & Drain Blockages</option>
-                        <option value="Other">General Town Council Inquiries</option>
-                      </select>
+                      <label className="form-label">Short name for the problem</label>
+                      <input type="text" className="form-input" required placeholder="Example: Big hole near the market" value={requestTitle} onChange={(e) => setRequestTitle(e.target.value)} />
                     </div>
+                    {requestInputMode === 'text' ? (
+                      <div className="form-group">
+                        <label className="form-label">Tell us what happened and where</label>
+                        <textarea className="form-input" style={{ minHeight: '90px' }} required placeholder="Describe the problem and give a nearby landmark." value={requestDesc} onChange={(e) => setRequestDesc(e.target.value)} />
+                      </div>
+                    ) : (
+                      <div className="audio-recorder">
+                        {!isRecording && !audioData && <button type="button" className="record-button" onClick={startRecording}><Mic size={22} /> Start recording</button>}
+                        {isRecording && <button type="button" className="record-button recording" onClick={stopRecording}><Square size={18} /> Stop recording</button>}
+                        {audioData && <div className="audio-preview"><Volume2 size={20} /><audio controls src={audioData} /><button type="button" className="btn btn-secondary" onClick={() => setAudioData('')}>Record again</button></div>}
+                        <p>Say what happened and mention a nearby place or landmark.</p>
+                      </div>
+                    )}
                     <div className="form-group">
-                      <label className="form-label">Urgency Priority</label>
+                      <label className="form-label">How urgent is it?</label>
                       <select className="form-input" value={requestPriority} onChange={(e) => setRequestPriority(e.target.value)}>
-                        <option value="low">Low (General Feedback)</option>
-                        <option value="medium">Medium (Standard Request)</option>
-                        <option value="high">High (Immediate Hazard)</option>
+                        <option value="low">Not urgent</option><option value="medium">Needs attention</option><option value="high">Danger — urgent help</option>
                       </select>
                     </div>
-                    <div className="form-group">
-                      <label className="form-label">Specific Details / Location description</label>
-                      <textarea className="form-input" style={{ minHeight: '100px' }} required placeholder="Please state full address details to help council workers locate the issue." value={requestDesc} onChange={(e) => setRequestDesc(e.target.value)} />
-                    </div>
-                    <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={submittingRequest}>
-                      {submittingRequest ? 'Submitting...' : 'Submit Feedback'}
+                    <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={submittingRequest || (requestInputMode === 'audio' && !audioData)}>
+                      {submittingRequest ? 'Sending...' : 'Send My Report'}
                     </button>
-                  </form>
+                  </form>}
+                  </>}
                 </div>
               </div>
 
               <div>
-                <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem', fontFamily: 'var(--font-heading)' }}>My Active Reports & Timeline</h3>
+                <h3 style={{ fontSize: '1.05rem', marginBottom: '1.1rem', fontFamily: 'var(--font-heading)' }}>My Active Reports & Timeline</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {requests.length === 0 ? (
                     <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>
@@ -721,7 +806,7 @@ const CitizenDashboard = () => {
                             {req.status}
                           </span>
                         </div>
-                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{req.description}</p>
+                        {req.inputMode === 'audio' && req.audioData ? <audio controls src={req.audioData} style={{ width: '100%', height: '34px' }} /> : <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{req.description}</p>}
                         
                         <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.75rem', marginBottom: '0.75rem' }}>
                           <span>Cat: {req.category}</span>

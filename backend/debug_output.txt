@@ -1,6 +1,10 @@
-Time: 2026-07-16T23:53:17.536Z
+Time: 2026-07-17T10:08:43.246Z
 MONGO_URI in env: "mongodb+srv://piesiebismark25_db_user:tk8KScGGRAguKYQq@towncouncil.sy0eqil.mongodb.net/?appName=towncouncil"
 JWT_SECRET in env: "supersecretkey_change_me_in_production"
 PORT in env: "5000"
 Attempting mongoose connection...
-MongoDB Connected successfully to host: ac-d7rcxeu-shard-00-00.sy0eqil.mongodb.net
+MongoDB connection failed: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+Error Stack: MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\Users\User\Music\Frontend\Towncouncil\backend\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (C:\Users\User\Music\Frontend\Towncouncil\backend\node_modules\mongoose\lib\connection.js:1100:11)
+    at async connectDB (file:///C:/Users/User/Music/Frontend/Towncouncil/backend/config/db.js:20:18)

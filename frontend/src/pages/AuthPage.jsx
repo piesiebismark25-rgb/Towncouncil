@@ -8,7 +8,7 @@ const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   
   // Inputs
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [role, setRole] = useState('citizen');
@@ -18,10 +18,10 @@ const AuthPage = () => {
 
   const loadDemo = (type) => {
     if (type === 'admin') {
-      setEmail('admin@towncouncil.gov');
+      setIdentifier('admin@towncouncil.gov');
       setPassword('password123');
     } else {
-      setEmail('citizen@gmail.com');
+      setIdentifier('citizen@gmail.com');
       setPassword('password123');
     }
     setIsLogin(true);
@@ -35,9 +35,9 @@ const AuthPage = () => {
 
     try {
       if (isLogin) {
-        await login(email, password);
+        await login(identifier, password);
       } else {
-        await register(username, email, password, role);
+        await register(username, identifier, password, role);
       }
     } catch (err) {
       setErrorMsg(err.message || 'Authentication error.');
@@ -115,10 +115,10 @@ const AuthPage = () => {
           )}
 
           <div className="form-group">
-            <label className="form-label">Email Address</label>
+            <label className="form-label">Email or Phone Number</label>
             <div style={{ position: 'relative' }}>
               <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
-              <input type="email" className="form-input" style={{ paddingLeft: '2.5rem' }} placeholder="john@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input type="text" inputMode="email" autoComplete="username" className="form-input" style={{ paddingLeft: '2.5rem' }} placeholder="name@example.com or +233 24 123 4567" required value={identifier} onChange={(e) => setIdentifier(e.target.value)} />
             </div>
           </div>
 
