@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Receipt, 
@@ -8,7 +8,8 @@ import {
   Map, 
   Users, 
   Megaphone,
-  UserCog
+  UserCog,
+  Download
 } from 'lucide-react';
 
 const Sidebar = ({ activeTab, setActiveTab, role }) => {
@@ -45,6 +46,7 @@ const Sidebar = ({ activeTab, setActiveTab, role }) => {
     { id: 'permits', label: 'Permits Approval', icon: FileText },
     { id: 'bookings', label: 'Event Bookings', icon: Calendar },
     { id: 'taxes', label: 'Tax Billing', icon: Receipt },
+    { id: 'reports', label: 'Reports', icon: Download },
     { id: 'gis', label: 'GIS Planning', icon: Map },
     { id: 'announcements', label: 'Announcements', icon: Megaphone }
   ];

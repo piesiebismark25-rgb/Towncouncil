@@ -255,6 +255,94 @@ const AdminDashboard = () => {
     window.open(`${API_BASE_URL}/admin/reports/csv?token=${token}`, '_blank');
   };
 
+  const csvValue = (value) => {
+    if (value === null || value === undefined) return '';
+    const stringValue = String(value).replace(/"/g, '""');
+    return /[",\n]/.test(stringValue) ? `"${stringValue}"` : stringValue;
+  };
+
+  const downloadLocalCsv = (filename, headers, rows) => {
+    const csv = [
+      headers.map(csvValue).join(','),
+      ...rows.map((row) => headers.map((header) => csvValue(row[header])).join(','))
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const generateSummaryReport = () => {
+    if (!analytics) {
+      showNotification('Analytics data is still loading.', 'error');
+      return;
+    }
+    downloadLocalCsv('town_council_summary_report.csv', ['Metric', 'Value'], [
+      { Metric: 'Registered Citizens', Value: analytics.summary.citizens },
+      { Metric: 'Pending Permits', Value: analytics.summary.pendingPermits },
+      { Metric: 'Approved Permits', Value: analytics.summary.approvedPermits },
+      { Metric: 'Total Service Requests', Value: analytics.summary.serviceRequests.total },
+      { Metric: 'Submitted Requests', Value: analytics.summary.serviceRequests.submitted },
+      { Metric: 'In Progress Requests', Value: analytics.summary.serviceRequests.inProgress },
+      { Metric: 'Resolved Requests', Value: analytics.summary.serviceRequests.resolved },
+      { Metric: 'Taxes Billed', Value: analytics.summary.taxes.billed },
+      { Metric: 'Taxes Collected', Value: analytics.summary.taxes.collected },
+      { Metric: 'Taxes Outstanding', Value: analytics.summary.taxes.pending },
+      { Metric: 'Event Bookings', Value: analytics.summary.bookingsCount }
+    ]);
+  };
+
+  const generateUsersReport = () => {
+    downloadLocalCsv('town_council_users_report.csv', ['ID', 'Name', 'Email', 'Role', 'Created At'], users.map((userItem) => ({
+      ID: userItem._id,
+      Name: userItem.username,
+      Email: userItem.email,
+      Role: userItem.role,
+      'Created At': userItem.createdAt ? new Date(userItem.createdAt).toLocaleString() : ''
+    })));
+  };
+
+  const generateTaxesReport = () => {
+    downloadLocalCsv('town_council_taxes_report.csv', ['ID', 'Citizen', 'Tax Type', 'Amount', 'Status', 'Billing Date', 'Receipt'], taxes.map((tax) => ({
+      ID: tax._id,
+      Citizen: tax.citizenName,
+      'Tax Type': tax.taxType,
+      Amount: tax.amount,
+      Status: tax.status,
+      'Billing Date': tax.billingDate ? new Date(tax.billingDate).toLocaleDateString() : '',
+      Receipt: tax.receiptNumber || ''
+    })));
+  };
+
+  const generatePermitsReport = () => {
+    downloadLocalCsv('town_council_permits_report.csv', ['ID', 'Citizen', 'Title', 'Permit Type', 'Status', 'Submitted At'], permits.map((permit) => ({
+      ID: permit._id,
+      Citizen: permit.citizenName,
+      Title: permit.title,
+      'Permit Type': permit.permitType,
+      Status: permit.status,
+      'Submitted At': permit.submittedAt ? new Date(permit.submittedAt).toLocaleDateString() : ''
+    })));
+  };
+
+  const generateBookingsReport = () => {
+    downloadLocalCsv('town_council_bookings_report.csv', ['ID', 'Citizen', 'Title', 'Venue', 'Date', 'Time Slot', 'Status', 'Tickets'], bookings.map((booking) => ({
+      ID: booking._id,
+      Citizen: booking.citizenName,
+      Title: booking.title,
+      Venue: booking.venue,
+      Date: booking.date,
+      'Time Slot': booking.timeSlot,
+      Status: booking.status,
+      Tickets: booking.ticketsCount
+    })));
+  };
+
   const handleCreateUser = async (e) => {
     e.preventDefault();
     setSubmittingCreateUser(true);
@@ -1441,7 +1529,108 @@ const AdminDashboard = () => {
           )}
 
           {/* ======================================== */}
-          {/* TAB 7: GIS TOWN PLANNING                 */}
+          {/* TAB 7: REPORT GENERATION                 */}
+          {/* ======================================== */}
+          {activeTab === 'reports' && (
+            <div className="animated-fade">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '1rem', flexWrap: 'wrap' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
+                    Reports Center
+                  </h2>
+                  <p style={{ color: 'var(--text-secondary)' }}>
+                    Generate operational CSV reports for council records, finance, permits, events, and citizen accounts.
+                  </p>
+                </div>
+                <button className="btn btn-primary" onClick={generateSummaryReport}>
+                  <Download size={18} /> Generate Summary
+                </button>
+              </div>
+
+              <div className="stats-grid">
+                <div className="card stat-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 650 }}>Service Requests Report</span>
+                    <Wrench size={18} />
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                    Export all citizen service requests, categories, priorities, statuses, and submission dates.
+                  </p>
+                  <button className="btn btn-secondary" onClick={downloadCSVReport}>
+                    <Download size={16} /> Download CSV
+                  </button>
+                </div>
+
+                <div className="card stat-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 650 }}>Citizen Accounts Report</span>
+                    <Users size={18} />
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                    Export portal users, email addresses, roles, and registration dates.
+                  </p>
+                  <button className="btn btn-secondary" onClick={generateUsersReport}>
+                    <Download size={16} /> Download CSV
+                  </button>
+                </div>
+
+                <div className="card stat-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 650 }}>Tax Billing Report</span>
+                    <Receipt size={18} />
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                    Export billed amounts, payment status, billing dates, and receipt references.
+                  </p>
+                  <button className="btn btn-secondary" onClick={generateTaxesReport}>
+                    <Download size={16} /> Download CSV
+                  </button>
+                </div>
+
+                <div className="card stat-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 650 }}>Permits Report</span>
+                    <FileText size={18} />
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                    Export permit applications, permit categories, statuses, and submission dates.
+                  </p>
+                  <button className="btn btn-secondary" onClick={generatePermitsReport}>
+                    <Download size={16} /> Download CSV
+                  </button>
+                </div>
+
+                <div className="card stat-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 650 }}>Event Bookings Report</span>
+                    <Calendar size={18} />
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                    Export venue bookings, dates, time slots, attendance counts, and booking statuses.
+                  </p>
+                  <button className="btn btn-secondary" onClick={generateBookingsReport}>
+                    <Download size={16} /> Download CSV
+                  </button>
+                </div>
+
+                <div className="card stat-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 650 }}>Council Summary Report</span>
+                    <Activity size={18} />
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                    Export a high-level management summary with service, tax, permit, citizen, and booking totals.
+                  </p>
+                  <button className="btn btn-secondary" onClick={generateSummaryReport}>
+                    <Download size={16} /> Download CSV
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ======================================== */}
+          {/* TAB 8: GIS TOWN PLANNING                 */}
           {/* ======================================== */}
           {activeTab === 'gis' && (
             <div className="animated-fade">
@@ -1456,7 +1645,7 @@ const AdminDashboard = () => {
           )}
 
           {/* ======================================== */}
-          {/* TAB 8: ANNOUNCEMENTS MANAGEMENT          */}
+          {/* TAB 9: ANNOUNCEMENTS MANAGEMENT          */}
           {/* ======================================== */}
           {activeTab === 'announcements' && (
             <div className="animated-fade dashboard-grid-1to12">
